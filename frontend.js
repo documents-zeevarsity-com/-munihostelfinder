@@ -2,14 +2,30 @@
 
 // Sample hostel data (will be loaded from localStorage)
 let hostels = [];
+let currentCurrency = localStorage.getItem('preferredCurrency') || 'UGX';
+let exchangeRate = 3750; // Default fallback rate
 
-// Load hostels from localStorage
-function loadHostels() {
-    const storedHostels = localStorage.getItem('hostels');
-    if (storedHostels) {
-        hostels = JSON.parse(storedHostels);
+// Initialize currency display
+async function initializeCurrency() {
+    // Set initial currency from localStorage
+    const selector = document.getElementById('currencyToggle');
+    if (selector) {
+        selector.value = currentCurrency;
+        selector.addEventListener('change', (e) => {
+            currentCurrency = e.target.value;
+            localStorage.setItem('preferredCurrency', currentCurrency);
+            displayHostels();
+        });
     }
-    return hostels.filter(hostel => hostel.status === 'active');
+    
+    // Fetch and display exchange rate
+    try {
+        exchangeRate = await currencyConverter.getExchangeRate();
+        updateExchangeRateDisplay();
+    } catch (error) {
+        console.error('Failed to initialize currency:', error);
+        updateExchangeRateDisplay();
+    }
 }
 
 // Check if user is logged in
@@ -21,6 +37,54 @@ function isUserLoggedIn() {
 function getCurrentUser() {
     const userJson = sessionStorage.getItem('currentUser');
     return userJson ? JSON.parse(userJson) : null;
+}
+
+// Load hostels from localStorage
+function loadHostels() {
+    const storedHostels = localStorage.getItem('hostels');
+    if (storedHostels) {
+        hostels = JSON.parse(storedHostels);
+    }
+    return hostels.filter(hostel => hostel.status === 'active');
+}
+
+// Update exchange rate display
+function updateExchangeRateDisplay() {
+    const display = document.getElementById('exchangeRateDisplay');
+    const updated = document.getElementById('rateUpdated');
+    
+    if (display) {
+        display.textContent = currencyConverter.formatExchangeRate(exchangeRate);
+    }
+    if (updated) {
+        updated.textContent = `(Updated: ${currencyConverter.getRateUpdateTime()})`;
+    }
+    
+    // Stop spinning animation
+    const icon = document.querySelector('.exchange-rate-info i');
+    if (icon) {
+        icon.classList.add('updated');
+    }
+}
+
+// Convert price based on current currency selection
+function convertPrice(ugxPrice) {
+    if (currentCurrency === 'USD') {
+        return currencyConverter.usdToUgx(
+            currencyConverter.ugxToUsd(ugxPrice, exchangeRate),
+            exchangeRate
+        );
+    }
+    return ugxPrice;
+}
+
+// Format price for display
+function formatPrice(ugxPrice) {
+    if (currentCurrency === 'USD') {
+        const usdAmount = currencyConverter.ugxToUsd(ugxPrice, exchangeRate);
+        return currencyConverter.formatCurrency(usdAmount, 'USD');
+    }
+    return currencyConverter.formatCurrency(ugxPrice, 'UGX');
 }
 
 // Display hostels on page
@@ -76,7 +140,7 @@ function displayHostels(hostelList = null) {
                         <span>Security</span>
                     </div>
                 </div>
-                <div class="hostel-price">UGX ${hostel.price}/month</div>
+                <div class="hostel-price">${formatPrice(hostel.price)}/month</div>
                 <div class="hostel-actions">
                     <button class="btn btn-primary view-details-btn" data-id="${hostel.id}">
                         <i class="fas fa-eye"></i> View Details
@@ -774,6 +838,9 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Update user navigation
     updateUserNavigation();
+    
+    // Initialize currency converter
+    initializeCurrency();
     
     // Smooth scrolling for navigation
     document.querySelectorAll('nav a[href^="#"]').forEach(anchor => {

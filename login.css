@@ -12,6 +12,8 @@
     --dark: #333;
     --success: #28a745;
     --danger: #dc3545;
+    --warning: #ffc107;
+    --info: #17a2b8;
 }
 
 body {
@@ -284,4 +286,96 @@ body {
         flex-direction: column;
         gap: 0;
     }
+}
+
+/* Utility Classes */
+.text-muted {
+    color: #6c757d;
+}
+
+.text-primary {
+    color: var(--primary);
+}
+
+.text-success {
+    color: var(--success);
+}
+
+.text-danger {
+    color: var(--danger);
+}
+
+.text-warning {
+    color: var(--warning);
+}
+
+.text-info {
+    color: var(--info);
+}
+
+.mt-1 { margin-top: 0.25rem; }
+.mt-2 { margin-top: 0.5rem; }
+.mt-3 { margin-top: 1rem; }
+.mt-4 { margin-top: 1.5rem; }
+
+.mb-1 { margin-bottom: 0.25rem; }
+.mb-2 { margin-bottom: 0.5rem; }
+.mb-3 { margin-bottom: 1rem; }
+.mb-4 { margin-bottom: 1.5rem; }
+
+.p-1 { padding: 0.25rem; }
+.p-2 { padding: 0.5rem; }
+.p-3 { padding: 1rem; }
+.p-4 { padding: 1.5rem; }
+
+.rounded { border-radius: 4px; }
+.rounded-lg { border-radius: 8px; }
+
+.shadow-sm {
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+}
+
+.shadow {
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+}
+
+.shadow-lg {
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+}
+
+/* Dark Mode Support */
+body.dark-mode {
+    background: linear-gradient(rgba(0, 0, 0, 0.8), rgba(0, 0, 0, 0.8)), url('muni.webp');
+}
+
+body.dark-mode .login-container {
+    background: rgba(42, 42, 42, 0.95);
+    color: #f0f0f0;
+}
+
+body.dark-mode .login-header {
+    background: #0d0d0d;
+}
+
+body.dark-mode .login-body {
+    background: rgba(42, 42, 42, 0.95);
+}
+
+body.dark-mode .user-type {
+    background: #3a3a3a;
+    color: #f0f0f0;
+}
+
+body.dark-mode .user-type.active {
+    background: var(--primary);
+}
+
+body.dark-mode .form-control {
+    background: #3a3a3a;
+    color: #f0f0f0;
+    border-color: #555;
+}
+
+body.dark-mode .form-control:focus {
+    border-color: var(--primary);
 }
