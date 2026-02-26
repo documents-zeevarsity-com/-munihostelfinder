@@ -32,11 +32,15 @@ document.addEventListener('DOMContentLoaded', function() {
             userTypeAdmin.classList.remove('active');
             studentFields.style.display = 'block';
             hostelOwnerFields.style.display = 'none';
+            // clear admin-specific input when switching back to student
+            document.getElementById('hostelName').value = '';
         } else {
             userTypeAdmin.classList.add('active');
             userTypeUser.classList.remove('active');
             studentFields.style.display = 'none';
             hostelOwnerFields.style.display = 'block';
+            // clear student-specific input when switching to admin
+            document.getElementById('studentId').value = '';
         }
         clearErrors();
     }
@@ -81,7 +85,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 phone,
                 password,
                 role: isHostelAdmin ? 'hostel_admin' : 'user',
-                studentId: isHostelAdmin ? null : studentId,
+                studentId: isHostelAdmin ? null : (studentId || null),
                 hostelName: isHostelAdmin ? hostelName : null,
                 hostelId: null
             };
@@ -100,8 +104,7 @@ document.addEventListener('DOMContentLoaded', function() {
             } else {
                 showSuccess(`
                     ✅ Account created successfully!<br><br>
-                    You can now login to browse and book hostels.<br>
-                    Redirecting to login page...
+                    You are now logged in and will be taken to browse available hostels shortly.<br>
                 `);
             }
             
@@ -109,11 +112,15 @@ document.addEventListener('DOMContentLoaded', function() {
             const signupBtn = document.querySelector('.btn-primary');
             signupBtn.disabled = true;
             signupBtn.innerHTML = '<i class="fas fa-check"></i> Account Created';
-            
-            // Redirect after delay
-            setTimeout(() => {
-                window.location.href = 'index.html';
-            }, 5000);
+
+            if (!isHostelAdmin) {
+                // automatically log in the student and redirect straight to browsing page
+                sessionStorage.setItem('currentUser', JSON.stringify(newUser));
+
+                setTimeout(() => {
+                    window.location.href = 'frontend.html';
+                }, 1500);
+            }
             
         } catch (error) {
             showError(error.message);
@@ -187,8 +194,9 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         
         // Role-specific validation
-        if (!isHostelAdmin && !studentId) {
-            showFieldError('studentId', 'Student ID is required');
+        // Student ID is optional for regular users, but if provided it should be non-empty.
+        if (!isHostelAdmin && studentId && studentId.length < 3) {
+            showFieldError('studentId', 'Please enter a valid Student ID');
             isValid = false;
         }
         

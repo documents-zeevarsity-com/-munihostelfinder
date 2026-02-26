@@ -118,10 +118,12 @@ const securityManager = (function() {
             throw new Error('A user with that email already exists');
         }
         const id = 'u-' + Date.now();
+        // automatically activate regular student accounts, pending for admins
+        const status = data.role === 'user' ? 'active' : 'pending';
         const newUser = Object.assign({
             id,
             createdAt: new Date().toISOString(),
-            status: 'pending'
+            status
         }, data);
         users.push(newUser);
         saveUsers(users);
