@@ -973,6 +973,9 @@ footer {
     box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
 }
 
+/* Responsive images */
+img { max-width: 100%; height: auto; display: block; }
+
 .modal-header {
     padding: 1.5rem;
     border-bottom: 1px solid #eee;
@@ -1745,4 +1748,20 @@ body.dark-mode .form-control:focus {
     overflow-x: auto;
     border-radius: 8px;
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+}
+
+/* Row separators for lists (hostels / bookings) */
+#hostelsTable tbody tr,
+#bookingsTable tbody tr {
+    border-bottom: 1px solid #e9ecef;
+}
+
+#hostelsTable tbody tr:last-child,
+#bookingsTable tbody tr:last-child {
+    border-bottom: none;
+}
+
+#hostelsTable td,
+#bookingsTable td {
+    padding: 0.75rem 1rem;
 }

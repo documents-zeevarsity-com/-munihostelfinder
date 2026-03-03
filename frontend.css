@@ -346,10 +346,14 @@ nav a:hover {
 }
 
 .hostel-img {
-    height: 200px;
     width: 100%;
+    height: auto;
+    aspect-ratio: 16 / 9;
     object-fit: cover;
 }
+
+/* Ensure images scale on small screens */
+img { max-width: 100%; height: auto; display: block; }
 
 .hostel-info {
     padding: 1.5rem;

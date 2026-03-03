@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Settings - Muni Hostel Finder</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="frontend.css">
+    <style>
+        .settings-container { max-width: 900px; margin: 2rem auto; padding: 1rem; }
+        .card { background: white; padding: 1rem; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); margin-bottom: 1rem; }
+        .row { display: flex; gap: 1rem; flex-wrap: wrap; }
+        .col { flex: 1; min-width: 220px; }
+        label { display:block; margin-bottom: .5rem; font-weight:600; }
+        .small { font-size: .9rem; color: #6c757d; }
+        .inline { display:inline-flex; align-items:center; gap:.5rem; }
+        .btn { padding:.5rem .8rem; border-radius:6px; cursor:pointer; border:1px solid #ddd; background:#fff }
+        .btn-primary { background:#a02c2c; color:white; border-color:#a02c2c }
+    </style>
+</head>
+<body>
+    <div class="settings-container">
+        <h1>Settings</h1>
+        <p class="small">Configure preferences and view the forex converter.</p>
+
+        <div class="card">
+            <h2>General Preferences</h2>
+            <p class="small">No currency conversion features are enabled. Prices are displayed in UGX.</p>
+            <div style="margin-top:1rem; display:flex; gap:.5rem;">
+                <button id="exportSettings" class="btn">Export Settings</button>
+                <button id="importSettings" class="btn">Import Settings</button>
+                <input type="file" id="importFile" style="display:none" accept="application/json">
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>Advanced</h2>
+            <p class="small">Utilities for developers and admins.</p>
+            <div style="display:flex; gap:.5rem;">
+                <button id="exportSettings" class="btn">Export Settings</button>
+                <button id="importSettings" class="btn">Import Settings</button>
+                <input type="file" id="importFile" style="display:none" accept="application/json">
+            </div>
+        </div>
+    </div>
+
+    <script src="security.js"></script>
+    <script src="currency-converter.js"></script>
+    <script src="settings.js"></script>
+</body>
+</html>

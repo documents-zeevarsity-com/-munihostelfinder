@@ -223,6 +223,41 @@ function setupEventListeners() {
     if (createUserBtn) {
         createUserBtn.addEventListener('click', createNewUser);
     }
+
+    // Mobile menu toggle
+    const menuToggle = document.getElementById('menuToggle');
+    const sidebar = document.querySelector('.sidebar');
+    const overlay = document.querySelector('.sidebar-overlay');
+
+    if (menuToggle && sidebar && overlay) {
+        menuToggle.addEventListener('click', function() {
+            const isActive = sidebar.classList.contains('active');
+            if (isActive) {
+                sidebar.classList.remove('active');
+                overlay.classList.remove('active');
+                document.body.style.overflow = '';
+            } else {
+                sidebar.classList.add('active');
+                overlay.classList.add('active');
+                document.body.style.overflow = 'hidden';
+            }
+        });
+
+        overlay.addEventListener('click', function() {
+            sidebar.classList.remove('active');
+            overlay.classList.remove('active');
+            document.body.style.overflow = '';
+        });
+
+        // Ensure sidebar closes when resizing to larger screens
+        window.addEventListener('resize', function() {
+            if (window.innerWidth > 768) {
+                sidebar.classList.remove('active');
+                overlay.classList.remove('active');
+                document.body.style.overflow = '';
+            }
+        });
+    }
 }
 
 function attachEventListenersToCards() {

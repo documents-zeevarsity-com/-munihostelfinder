@@ -2,31 +2,7 @@
 
 // Sample hostel data (will be loaded from localStorage)
 let hostels = [];
-let currentCurrency = localStorage.getItem('preferredCurrency') || 'UGX';
-let exchangeRate = 3750; // Default fallback rate
-
-// Initialize currency display
-async function initializeCurrency() {
-    // Set initial currency from localStorage
-    const selector = document.getElementById('currencyToggle');
-    if (selector) {
-        selector.value = currentCurrency;
-        selector.addEventListener('change', (e) => {
-            currentCurrency = e.target.value;
-            localStorage.setItem('preferredCurrency', currentCurrency);
-            displayHostels();
-        });
-    }
-    
-    // Fetch and display exchange rate
-    try {
-        exchangeRate = await currencyConverter.getExchangeRate();
-        updateExchangeRateDisplay();
-    } catch (error) {
-        console.error('Failed to initialize currency:', error);
-        updateExchangeRateDisplay();
-    }
-}
+// Currency exchange removed: prices shown in UGX only
 
 // Check if user is logged in
 function isUserLoggedIn() {
@@ -49,42 +25,14 @@ function loadHostels() {
 }
 
 // Update exchange rate display
-function updateExchangeRateDisplay() {
-    const display = document.getElementById('exchangeRateDisplay');
-    const updated = document.getElementById('rateUpdated');
-    
-    if (display) {
-        display.textContent = currencyConverter.formatExchangeRate(exchangeRate);
-    }
-    if (updated) {
-        updated.textContent = `(Updated: ${currencyConverter.getRateUpdateTime()})`;
-    }
-    
-    // Stop spinning animation
-    const icon = document.querySelector('.exchange-rate-info i');
-    if (icon) {
-        icon.classList.add('updated');
-    }
-}
-
-// Convert price based on current currency selection
-function convertPrice(ugxPrice) {
-    if (currentCurrency === 'USD') {
-        return currencyConverter.usdToUgx(
-            currencyConverter.ugxToUsd(ugxPrice, exchangeRate),
-            exchangeRate
-        );
-    }
-    return ugxPrice;
-}
-
-// Format price for display
+// Simple UGX-only formatter
 function formatPrice(ugxPrice) {
-    if (currentCurrency === 'USD') {
-        const usdAmount = currencyConverter.ugxToUsd(ugxPrice, exchangeRate);
-        return currencyConverter.formatCurrency(usdAmount, 'USD');
+    const num = typeof ugxPrice === 'number' ? ugxPrice : parseInt(String(ugxPrice).replace(/[^0-9-]/g,'')) || 0;
+    try {
+        return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'UGX', maximumFractionDigits: 0 }).format(num);
+    } catch (e) {
+        return `UGX ${num.toLocaleString()}`;
     }
-    return currencyConverter.formatCurrency(ugxPrice, 'UGX');
 }
 
 // Display hostels on page
@@ -839,8 +787,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Update user navigation
     updateUserNavigation();
     
-    // Initialize currency converter
-    initializeCurrency();
+    // Currency exchange removed; prices are shown in UGX only
     
     // Smooth scrolling for navigation
     document.querySelectorAll('nav a[href^="#"]').forEach(anchor => {

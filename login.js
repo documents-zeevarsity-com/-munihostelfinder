@@ -2,8 +2,6 @@
 
 document.addEventListener('DOMContentLoaded', function() {
     // DOM Elements
-    const userTypeUser = document.getElementById('userTypeUser');
-    const userTypeAdmin = document.getElementById('userTypeAdmin');
     const loginForm = document.getElementById('loginForm');
     const togglePassword = document.getElementById('togglePassword');
     const passwordInput = document.getElementById('password');
@@ -15,8 +13,6 @@ document.addEventListener('DOMContentLoaded', function() {
     initializePage();
     
     // Event Listeners
-    userTypeUser.addEventListener('click', () => selectUserType('student'));
-    userTypeAdmin.addEventListener('click', () => selectUserType('admin'));
     togglePassword.addEventListener('click', togglePasswordVisibility);
     loginForm.addEventListener('submit', handleLogin);
     forgotPasswordLink.addEventListener('click', handleForgotPassword);
@@ -28,25 +24,9 @@ document.addEventListener('DOMContentLoaded', function() {
     function initializePage() {
         // Check for stored credentials
         checkStoredCredentials();
-        
-        // Set default user type
-        selectUserType('student');
-        
         // Auto-focus email field
         if (!emailInput.value) {
             emailInput.focus();
-        }
-    }
-    
-    function selectUserType(type) {
-        clearErrorMessages();
-        
-        if (type === 'student') {
-            userTypeUser.classList.add('active');
-            userTypeAdmin.classList.remove('active');
-        } else {
-            userTypeAdmin.classList.add('active');
-            userTypeUser.classList.remove('active');
         }
     }
     
@@ -60,49 +40,37 @@ document.addEventListener('DOMContentLoaded', function() {
     
     async function handleLogin(e) {
         e.preventDefault();
-        
+
         const email = emailInput.value.trim();
         const password = passwordInput.value;
         const rememberMe = rememberMeCheckbox.checked;
-        const isAdmin = userTypeAdmin.classList.contains('active');
-        
+
         clearErrorMessages();
-        
+
         if (!validateForm(email, password)) {
             return;
         }
-        
+
         try {
             // Authenticate user
             const user = securityManager.authenticate(email, password);
-            
+
             if (!user) {
                 showError('Invalid email or password. Please try again.');
                 return;
             }
-            
-            // Check if user is trying to access correct portal
-            if (isAdmin && user.role === 'user') {
-                showError('This account does not have admin privileges. Please login as a student.');
-                return;
-            }
-            
-            if (!isAdmin && user.role !== 'user') {
-                showError('Please use the admin login for this account.');
-                return;
-            }
-            
+
             // Check account status
             if (user.status === 'pending') {
                 showError('Your account is pending approval. Please contact the system administrator.');
                 return;
             }
-            
+
             if (user.status === 'inactive') {
                 showError('Your account has been deactivated. Please contact support.');
                 return;
             }
-            
+
             // Store remember me preference
             if (rememberMe) {
                 localStorage.setItem('rememberedEmail', email);
@@ -111,13 +79,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 localStorage.removeItem('rememberedEmail');
                 localStorage.removeItem('rememberMe');
             }
-            
+
             // Store user session
             sessionStorage.setItem('currentUser', JSON.stringify(user));
-            
-            // Show success and redirect
+
+            // Show success and redirect based on stored role
             showLoginSuccess(user);
-            
+
         } catch (error) {
             showError('An error occurred during login. Please try again.');
             console.error('Login error:', error);

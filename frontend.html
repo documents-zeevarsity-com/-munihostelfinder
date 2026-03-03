@@ -21,11 +21,8 @@
                     <li><i class="fas fa-map-marker-alt"></i> <a href="#map">Map</a></li>
                     <li><i class="fas fa-question-circle"></i> <a href="#faq">FAQ</a></li>
                     <li><i class="fas fa-envelope"></i> <a href="#contact">Contact</a></li>
-                    <li class="currency-selector-container">
-                        <select id="currencyToggle" class="currency-toggle">
-                            <option value="UGX">UGX</option>
-                            <option value="USD">USD</option>
-                        </select>
+                    <li>
+                        <a href="settings.html"><i class="fas fa-cog"></i> Settings</a>
                     </li>
                     <li class="user-menu" id="authNav">
                         <a href="index.html" id="authLink"><i class="fas fa-user"></i> Login</a>
@@ -61,12 +58,6 @@
         <h2 class="section-title">Available Hostels</h2>
         <p class="section-subtitle">Browse all available hostels. <a href="signup.html">Register</a> to view contact details and make bookings.</p>
         
-        <!-- Exchange Rate Info -->
-        <div class="exchange-rate-info" id="exchangeRateInfo">
-            <i class="fas fa-sync-alt"></i>
-            <span id="exchangeRateDisplay">Loading exchange rate...</span>
-            <span class="rate-updated" id="rateUpdated"></span>
-        </div>
         
         <div class="hostels-grid" id="hostels-container">
             <!-- Hostels will be populated by JavaScript -->
