@@ -20,7 +20,7 @@
         <div class="sidebar-menu">
             <ul>
                 <li><a href="backend.html"><i class="fas fa-tachometer-alt"></i> <span>Dashboard</span></a></li>
-                <li><a href="admin-management.html" class="active"><i class="fas fa-users-cog"></i> <span>User Management</span></a></li>
+                <li><a href="admin_management.html" class="active"><i class="fas fa-users-cog"></i> <span>User Management</span></a></li>
                 <li><a href="security-logs.html"><i class="fas fa-shield-alt"></i> <span>Security Logs</span></a></li>
                 <li><a href="hostel-assignments.html"><i class="fas fa-bed"></i> <span>Hostel Assignments</span></a></li>
                 <li><a href="system-audit.html"><i class="fas fa-clipboard-check"></i> <span>System Audit</span></a></li>
@@ -109,33 +109,33 @@
             <div class="section-header">
                 <h2>System Actions</h2>
             </div>
-            <div class="quick-actions-grid">
-                <a href="security-logs.html" class="quick-action-card">
-                    <div class="quick-action-icon" style="background: rgba(220, 53, 69, 0.1); color: #dc3545;">
+            <div class="system-actions-grid">
+                <a href="security-logs.html" class="system-action-card">
+                    <div class="system-action-icon" style="background: rgba(220, 53, 69, 0.1); color: #dc3545;">
                         <i class="fas fa-shield-alt"></i>
                     </div>
                     <h3>Security Logs</h3>
                     <p>View all security events and logs</p>
                 </a>
                 
-                <a href="system-backup.html" class="quick-action-card">
-                    <div class="quick-action-icon" style="background: rgba(40, 167, 69, 0.1); color: #28a745;">
+                <a href="system-backup.html" class="system-action-card">
+                    <div class="system-action-icon" style="background: rgba(40, 167, 69, 0.1); color: #28a745;">
                         <i class="fas fa-database"></i>
                     </div>
                     <h3>System Backup</h3>
                     <p>Backup and restore system data</p>
                 </a>
                 
-                <a href="bulk-operations.html" class="quick-action-card">
-                    <div class="quick-action-icon" style="background: rgba(0, 123, 255, 0.1); color: #007bff;">
+                <a href="bulk-operations.html" class="system-action-card">
+                    <div class="system-action-icon" style="background: rgba(0, 123, 255, 0.1); color: #007bff;">
                         <i class="fas fa-tasks"></i>
                     </div>
                     <h3>Bulk Operations</h3>
                     <p>Perform bulk actions on users</p>
                 </a>
                 
-                <a href="system-config.html" class="quick-action-card">
-                    <div class="quick-action-icon" style="background: rgba(255, 193, 7, 0.1); color: #ffc107;">
+                <a href="system-config.html" class="system-action-card">
+                    <div class="system-action-icon" style="background: rgba(255, 193, 7, 0.1); color: #ffc107;">
                         <i class="fas fa-sliders-h"></i>
                     </div>
                     <h3>System Config</h3>
@@ -249,8 +249,18 @@
         </div>
     </div>
 
+    <!-- Firebase SDK (compat version) -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
+    
+    <!-- Firebase config (create from firebase-config.example.js) -->
+    <script src="firebase-config.js" onload="console.log('Firebase config loaded')"></script>
+    <!-- Firebase manager wrapper -->
+    <script src="firebase-manager.js"></script>
+    
     <script src="security.js"></script>
-    <script src=admin_management.js"></script>
+    <script src="admin_management.js"></script>
 </body>
 
 </html>

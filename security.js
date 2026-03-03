@@ -358,29 +358,23 @@ function setupRegistrationModal() {
 
 // Theme toggle injection for header
 function ensureHeaderThemeToggle() {
-    const headerContainers = document.querySelectorAll('.header-container, .header');
-    if (!headerContainers || headerContainers.length === 0) return;
-
-    headerContainers.forEach(container => {
-        if (container.querySelector('#themeToggle')) return;
-        const btn = document.createElement('button');
-        btn.id = 'themeToggle';
-        btn.className = 'theme-toggle';
-        btn.type = 'button';
-        btn.setAttribute('aria-pressed', 'false');
-        btn.style.marginLeft = '1rem';
-        btn.innerHTML = '<i class="fas fa-moon"></i>';
-        btn.addEventListener('click', () => {
-            const isDark = document.body.classList.toggle('dark-mode');
-            btn.setAttribute('aria-pressed', String(isDark));
-            const icon = btn.querySelector('i');
-            if (isDark) { icon.className = 'fas fa-sun'; } else { icon.className = 'fas fa-moon'; }
-            localStorage.setItem('theme', isDark ? 'dark' : 'light');
-        });
-        // Append to container's right side if possible
-        const right = container.querySelector('.header-right') || container.querySelector('nav') || container;
-        right.appendChild(btn);
+    const themeContainer = document.getElementById('themeToggleContainer');
+    if (!themeContainer || themeContainer.querySelector('#themeToggle')) return;
+    
+    const btn = document.createElement('button');
+    btn.id = 'themeToggle';
+    btn.className = 'theme-toggle';
+    btn.type = 'button';
+    btn.setAttribute('aria-pressed', 'false');
+    btn.innerHTML = '<i class="fas fa-moon"></i>';
+    btn.addEventListener('click', () => {
+        const isDark = document.body.classList.toggle('dark-mode');
+        btn.setAttribute('aria-pressed', String(isDark));
+        const icon = btn.querySelector('i');
+        if (isDark) { icon.className = 'fas fa-sun'; } else { icon.className = 'fas fa-moon'; }
+        localStorage.setItem('theme', isDark ? 'dark' : 'light');
     });
+    themeContainer.appendChild(btn);
 
     // Apply saved theme
     const saved = localStorage.getItem('theme');
@@ -388,7 +382,7 @@ function ensureHeaderThemeToggle() {
         document.body.classList.add('dark-mode');
         document.querySelectorAll('#themeToggle i').forEach(i => i.className = 'fas fa-sun');
     }
-}
+}}
 
 // Initialize the page
 document.addEventListener('DOMContentLoaded', function() {

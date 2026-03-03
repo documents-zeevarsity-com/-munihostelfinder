@@ -17,16 +17,14 @@
             </div>
             <nav>
                 <ul>  
-                    <li><i class="fas fa-bed"></i>  <a href="#hostels">Find Hostels</a></li>
-                    <li><i class="fas fa-map-marker-alt"></i> <a href="#map">Map</a></li>
-                    <li><i class="fas fa-question-circle"></i> <a href="#faq">FAQ</a></li>
-                    <li><i class="fas fa-envelope"></i> <a href="#contact">Contact</a></li>
-                    <li>
-                        <a href="settings.html"><i class="fas fa-cog"></i> Settings</a>
-                    </li>
+                    <li><a href="#hostels">Find Hostels</a></li>
+                    <li><a href="#map">Map</a></li>
+                    <li><a href="#faq">FAQ</a></li>
+                    <li><a href="#contact">Contact</a></li>
                     <li class="user-menu" id="authNav">
-                        <a href="index.html" id="authLink"><i class="fas fa-user"></i> Login</a>
+                        <a href="index.html" id="authLink">Login</a>
                     </li>
+                    <li id="themeToggleContainer" style="display: flex; justify-content: center; margin-top: 0.5rem;"></li>
                 </ul>
             </nav>
             <!-- Mobile menu toggle will be added by JavaScript -->
@@ -34,7 +32,7 @@
     </header>
 
     <!-- Hero Section -->
-    <section class="hero" id="home">
+    <section class="hero" id="home" style="background-image: url('muni.webp'); background-size: cover; background-position: center;">
         <div class="hero-content">
             <h2>Find Your Perfect Hostel Near Muni University</h2>
             <p>Browse available hostels. Register to view contact details and make bookings</p>
@@ -145,7 +143,7 @@
             <p>&copy; 2025 Muni Hostel Finder. All rights reserved.</p>
             <p style="margin-top: 0.5rem; font-size: 0.9rem;">
                 <a href="backend.html" style="color: #6c757d;">Admin Portal</a> | 
-                <a href="admin-management.html" style="color: #6c757d;">System Management</a>
+                <a href="admin_management.html" style="color: #6c757d;">System Management</a>
             </p>
         </div>
     </footer>
@@ -195,6 +193,16 @@
         </div>
     </div>
 
+    <!-- Firebase SDK (compat version) -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
+    
+    <!-- Firebase config (create from firebase-config.example.js) -->
+    <script src="firebase-config.js" onload="console.log('Firebase config loaded')"></script>
+    <!-- Firebase manager wrapper -->
+    <script src="firebase-manager.js"></script>
+    
     <script src="security.js"></script>
     <script src="currency-converter.js"></script>
     <script src="frontend.js"></script>

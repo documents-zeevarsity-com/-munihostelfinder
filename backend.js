@@ -552,7 +552,7 @@ function configureUIByRole() {
                 if (!securityManager.hasPermission(currentUser, 'manage_users')) {
                     item.style.display = 'none';
                 } else {
-                    item.querySelector('a').href = 'admin-management.html';
+                    item.querySelector('a').href = 'admin_management.html';
                 }
                 break;
                 
@@ -587,7 +587,7 @@ function setupMenuNavigation() {
     if (usersMenuItem && usersMenuItem.textContent === 'Users') {
         const link = usersMenuItem.parentNode;
         if (securityManager.hasPermission(currentUser, 'manage_users')) {
-            link.href = 'admin-management.html';
+            link.href = 'admin_management.html';
         }
     }
 }
