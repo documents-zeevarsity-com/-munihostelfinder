@@ -12,6 +12,9 @@ document.addEventListener('DOMContentLoaded', function() {
     // Initialize
     initializePage();
     
+    // Use firebaseManager when available, otherwise fallback to local securityManager
+    const authManager = window.firebaseManager || window.securityManager;
+
     // Event Listeners
     togglePassword.addEventListener('click', togglePasswordVisibility);
     loginForm.addEventListener('submit', handleLogin);
@@ -51,22 +54,30 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
 
+        if (!authManager || typeof authManager.authenticate !== 'function') {
+            showError('Authentication system is not available. Please try again later.');
+            return;
+        }
+
         try {
-            // Authenticate user
-            const user = securityManager.authenticate(email, password);
+            // Authenticate user (supports both local and Firebase-based managers)
+            const maybeUser = authManager.authenticate(email, password);
+            const user = maybeUser && typeof maybeUser.then === 'function' ? await maybeUser : maybeUser;
 
             if (!user) {
                 showError('Invalid email or password. Please try again.');
                 return;
             }
 
-            // Check account status
-            if (user.status === 'pending') {
+            // Some auth systems may not include status; default to active
+            const status = (user.status || 'active').toLowerCase();
+
+            if (status === 'pending') {
                 showError('Your account is pending approval. Please contact the system administrator.');
                 return;
             }
 
-            if (user.status === 'inactive') {
+            if (status === 'inactive') {
                 showError('Your account has been deactivated. Please contact support.');
                 return;
             }
@@ -80,14 +91,16 @@ document.addEventListener('DOMContentLoaded', function() {
                 localStorage.removeItem('rememberMe');
             }
 
-            // Store user session
-            sessionStorage.setItem('currentUser', JSON.stringify(user));
+            // Store user session (remove password if present)
+            const safeUser = Object.assign({}, user);
+            if (safeUser.password) delete safeUser.password;
+            sessionStorage.setItem('currentUser', JSON.stringify(safeUser));
 
             // Show success and redirect based on stored role
-            showLoginSuccess(user);
+            showLoginSuccess(safeUser);
 
         } catch (error) {
-            showError('An error occurred during login. Please try again.');
+            showError(error?.message || 'An error occurred during login. Please try again.');
             console.error('Login error:', error);
         }
     }
@@ -146,14 +159,18 @@ document.addEventListener('DOMContentLoaded', function() {
         loginBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Signing In...';
         
         // Show success message
-        showSuccessMessage(`Welcome back, ${user.firstName}!`);
+        const displayName = user.firstName || user.displayName || user.email || 'User';
+        showSuccessMessage(`Welcome back, ${displayName}!`);
         
         // Redirect after delay
         setTimeout(() => {
-            if (user.role === 'user') {
+            const role = (user.role || 'user').toLowerCase();
+            if (role === 'user') {
                 window.location.href = 'frontend.html';
-            } else if (user.role === 'hostel_admin' || user.role === 'super_admin') {
+            } else if (role === 'hostel_admin' || role === 'super_admin' || role === 'superadmin') {
                 window.location.href = 'backend.html';
+            } else {
+                window.location.href = 'frontend.html';
             }
         }, 1500);
     }
@@ -170,8 +187,8 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         
         // Check if user exists
-        const users = securityManager.getUsers();
-        const user = users.find(u => u.email.toLowerCase() === email.toLowerCase());
+        const users = authManager && typeof authManager.getUsers === 'function' ? authManager.getUsers() : [];
+        const user = Array.isArray(users) ? users.find(u => (u.email || '').toLowerCase() === email.toLowerCase()) : null;
         
         if (!user) {
             // Don't reveal if user exists or not

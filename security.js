@@ -77,22 +77,45 @@ const hostels = [
 // Basic security manager providing in-browser authentication and helpers
 const securityManager = (function() {
     function loadUsers() {
-        const users = JSON.parse(localStorage.getItem('secureUsers') || 'null');
-        if (!users) {
-            // Create a default super admin for development
-            const defaultAdmin = [{
-                id: 'sa-1',
-                firstName: 'Super',
-                lastName: 'Admin',
-                email: 'admin@muni.test',
-                phone: '+256700000000',
-                password: 'Admin@123',
-                role: 'super_admin',
-                status: 'active',
-                createdAt: new Date().toISOString()
-            }];
-            localStorage.setItem('secureUsers', JSON.stringify(defaultAdmin));
-            return defaultAdmin;
+        let raw = localStorage.getItem('secureUsers');
+        if (!raw) raw = 'null';
+
+        let users;
+        try {
+            users = JSON.parse(raw);
+        } catch (err) {
+            console.warn('Failed to parse secureUsers from localStorage, resetting to default.', err);
+            users = null;
+        }
+
+        if (!Array.isArray(users)) {
+            // Create default admin accounts for development
+            const defaultUsers = [
+                {
+                    id: 'sa-1',
+                    firstName: 'Super',
+                    lastName: 'Admin',
+                    email: 'admin@muni.test',
+                    phone: '+256700000000',
+                    password: 'Admin@123',
+                    role: 'super_admin',
+                    status: 'active',
+                    createdAt: new Date().toISOString()
+                },
+                {
+                    id: 'ha-1',
+                    firstName: 'Hostel',
+                    lastName: 'Admin',
+                    email: 'hostel@muni.test',
+                    phone: '+256700000001',
+                    password: 'Hostel@123',
+                    role: 'hostel_admin',
+                    status: 'active',
+                    createdAt: new Date().toISOString()
+                }
+            ];
+            localStorage.setItem('secureUsers', JSON.stringify(defaultUsers));
+            return defaultUsers;
         }
         return users;
     }

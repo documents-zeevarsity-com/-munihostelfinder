@@ -14,6 +14,9 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Initialize
     selectUserType('student');
+
+    // Use firebaseManager when available, otherwise fallback to local securityManager
+    const authManager = window.firebaseManager || window.securityManager;
     
     // Event Listeners
     userTypeUser.addEventListener('click', () => selectUserType('student'));
@@ -90,9 +93,14 @@ document.addEventListener('DOMContentLoaded', function() {
                 hostelId: null
             };
             
-            // Create user through security manager
-            const newUser = securityManager.createUser(userData);
-            
+            if (!authManager || typeof authManager.createUser !== 'function') {
+                throw new Error('Authentication system is not available. Please try again later.');
+            }
+
+            // Create user through manager (local or Firebase)
+            const maybeUser = authManager.createUser(userData, password);
+            const newUser = maybeUser && typeof maybeUser.then === 'function' ? await maybeUser : maybeUser;
+
             // Show success message based on role
             if (isHostelAdmin) {
                 showSuccess(`
@@ -115,7 +123,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
             if (!isHostelAdmin) {
                 // automatically log in the student and redirect straight to browsing page
-                sessionStorage.setItem('currentUser', JSON.stringify(newUser));
+                const safeUser = Object.assign({}, newUser);
+                if (safeUser.password) delete safeUser.password;
+                sessionStorage.setItem('currentUser', JSON.stringify(safeUser));
 
                 setTimeout(() => {
                     window.location.href = 'frontend.html';
@@ -123,7 +133,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             
         } catch (error) {
-            showError(error.message);
+            showError(error?.message || 'An error occurred while creating your account. Please try again.');
         }
     }
     
