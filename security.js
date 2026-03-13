@@ -231,6 +231,11 @@ const securityManager = (function() {
     };
 })();
 
+// Ensure global access for firebase-manager fallback
+if (typeof window !== 'undefined') {
+    window.securityManager = securityManager;
+}
+
 // Utility: check if user is logged in
 function isUserLoggedIn() {
     return sessionStorage.getItem('currentUser') !== null;
