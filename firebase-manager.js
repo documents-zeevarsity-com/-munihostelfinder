@@ -36,6 +36,13 @@
 
   function init(config) {
     if (!config && typeof global.FIREBASE_CONFIG !== 'undefined') config = global.FIREBASE_CONFIG;
+
+    if (!isValidConfig(config)) {
+      console.warn('firebase-manager: Firebase config appears invalid or is using placeholder values. Using local securityManager fallback.');
+      firebaseManager.useLocal = true;
+      return firebaseManager;
+    }
+
     if (config && global.firebase && global.firebase.initializeApp) {
       try {
         global.firebase.initializeApp(config);
@@ -55,11 +62,41 @@
     return firebaseManager;
   }
 
+  function isValidConfig(cfg) {
+    if (!cfg || typeof cfg !== 'object') return false;
+    const required = [
+      'apiKey',
+      'authDomain',
+      'projectId',
+      'storageBucket',
+      'messagingSenderId',
+      'appId'
+    ];
+    for (const key of required) {
+      const val = cfg[key];
+      if (!val || typeof val !== 'string') return false;
+      if (val.trim().length === 0) return false;
+      if (val.includes('YOUR_') || val.toLowerCase().includes('your_') || val.toLowerCase().includes('yourproject')) return false;
+    }
+    return true;
+  }
+
   // Auth: returns user object or throws
   async function authenticate(email, password) {
     if (firebaseManager.useLocal) return callLocal('authenticate', email, password);
-    const userCred = await firebaseManager.auth.signInWithEmailAndPassword(email, password);
-    return mapFirebaseUser(userCred.user);
+
+    try {
+      const userCred = await firebaseManager.auth.signInWithEmailAndPassword(email, password);
+      return mapFirebaseUser(userCred.user);
+    } catch (e) {
+      // If the Firebase config is invalid (e.g., placeholder API key), fall back to local auth.
+      if (e && (e.code === 'auth/api-key-not-valid' || /api key not valid/i.test(e.message || ''))) {
+        console.warn('firebase-manager: Invalid Firebase API key detected. Falling back to local securityManager.', e);
+        firebaseManager.useLocal = true;
+        return callLocal('authenticate', email, password);
+      }
+      throw e;
+    }
   }
 
   async function signOut() {

@@ -410,7 +410,7 @@ function ensureHeaderThemeToggle() {
         document.body.classList.add('dark-mode');
         document.querySelectorAll('#themeToggle i').forEach(i => i.className = 'fas fa-sun');
     }
-}}
+}
 
 // Initialize the page
 document.addEventListener('DOMContentLoaded', function() {

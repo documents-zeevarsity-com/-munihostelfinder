@@ -100,7 +100,11 @@ document.addEventListener('DOMContentLoaded', function() {
             showLoginSuccess(safeUser);
 
         } catch (error) {
-            showError(error?.message || 'An error occurred during login. Please try again.');
+            let message = error?.message || 'An error occurred during login. Please try again.';
+            if (error?.code === 'auth/api-key-not-valid' || /api key not valid/i.test(message)) {
+                message = 'Firebase is not configured correctly (invalid API key). Please check your firebase-config.js and use valid Firebase credentials.';
+            }
+            showError(message);
             console.error('Login error:', error);
         }
     }
