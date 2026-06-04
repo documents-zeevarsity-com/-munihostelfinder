@@ -215,7 +215,7 @@ nav a:hover {
 .hero {
     position: relative;
     background-color: #111; /* fallback */
-    background-image: url('../assets/muni.webp');
+    background-image: url('muni.webp');
     background-size: cover;
     background-position: center center;
     background-repeat: no-repeat;

@@ -318,8 +318,8 @@ function resetCheckboxes() {
 }
 
 function saveHostel() {
-    // Only super admins can add new hostels
-    if (!securityManager.hasPermission(currentUser, 'manage_all_hostels')) {
+    // Only super admins and hostel admins can add new hostels
+    if (!securityManager.hasPermission(currentUser, 'manage_all_hostels') && currentUser.role !== 'hostel_admin') {
         alert('You do not have permission to add new hostels.');
         addHostelModal.style.display = 'none';
         return;
@@ -348,9 +348,13 @@ function saveHostel() {
         return;
     }
     
-    const hostels = getHostels();
-    const newHostel = {
-        id: hostels.length > 0 ? Math.max(...hostels.map(h => h.id)) + 1 : 1,
+    const photos = window.hostelPhotoManager ? hostelPhotoManager.getPhotos() : [];
+    if (photos.length > 5) {
+        alert('Maximum 5 photos allowed');
+        return;
+    }
+    
+    const hostelPayload = {
         name,
         price,
         location,
@@ -362,10 +366,46 @@ function saveHostel() {
         features,
         image: image || 'https://images.unsplash.com/photo-1566073771259-6a8506099945',
         status: 'active',
+        photos: photos.map(p => ({ type: p.type, src: p.src }))
+    };
+
+    // Try to use REST API first
+    if (window.apiClient && typeof window.apiClient.createHostel === 'function') {
+        saveHostelViaAPI(hostelPayload);
+    } else {
+        saveHostelLocally(hostelPayload);
+    }
+}
+
+async function saveHostelViaAPI(hostelPayload) {
+    try {
+        const response = await apiClient.createHostel(hostelPayload);
+        alert('✅ Hostel created successfully!');
+        
+        if (window.hostelPhotoManager) {
+            hostelPhotoManager.clearPhotos();
+        }
+        
+        hostelForm.reset();
+        addHostelModal.style.display = 'none';
+        
+        // Clear and reload hostels
+        displayHostels();
+        updateDashboardStats();
+    } catch (error) {
+        alert('Error: ' + (error?.message || 'Failed to create hostel'));
+        console.error('API error:', error);
+    }
+}
+
+function saveHostelLocally(hostelPayload) {
+    const hostels = getHostels();
+    const newHostel = Object.assign({
+        id: hostels.length > 0 ? Math.max(...hostels.map(h => h.id)) + 1 : 1,
         ownerId: null,
         createdBy: currentUser.id,
         createdAt: new Date().toISOString()
-    };
+    }, hostelPayload);
     
     hostels.push(newHostel);
     saveHostels(hostels);
@@ -376,8 +416,13 @@ function saveHostel() {
         createdBy: currentUser.id
     });
     
+    if (window.hostelPhotoManager) {
+        hostelPhotoManager.clearPhotos();
+    }
+    
     displayHostels();
     updateDashboardStats();
+
     
     addHostelModal.style.display = 'none';
     alert('Hostel saved successfully!');

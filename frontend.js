@@ -15,6 +15,26 @@ function getCurrentUser() {
     return userJson ? JSON.parse(userJson) : null;
 }
 
+async function fetchHostels() {
+    if (window.apiClient && typeof window.apiClient.getHostels === 'function') {
+        try {
+            const response = await apiClient.getHostels();
+            if (response && Array.isArray(response.hostels)) {
+                hostels = response.hostels.map(item => ({
+                    ...item,
+                    features: item.features ? item.features : {}
+                }));
+                localStorage.setItem('hostels', JSON.stringify(hostels));
+                return hostels.filter(hostel => hostel.status === 'active');
+            }
+        } catch (error) {
+            console.warn('Hostels API failed, falling back to local data:', error);
+        }
+    }
+
+    return loadHostels();
+}
+
 // Load hostels from localStorage
 function loadHostels() {
     const storedHostels = localStorage.getItem('hostels');
@@ -301,8 +321,8 @@ function bookHostel(hostelId) {
     });
 }
 
-function confirmBooking(hostelId) {
-    const hostel = loadHostels().find(h => h.id === hostelId);
+async function confirmBooking(hostelId) {
+    const hostel = hostels.find(h => h.id === hostelId);
     const user = getCurrentUser();
     const checkinDate = document.querySelector('#checkinDate').value;
     const duration = document.querySelector('#duration').value;
@@ -315,12 +335,38 @@ function confirmBooking(hostelId) {
     
     const checkin = new Date(checkinDate);
     const checkout = new Date(checkin);
-    checkout.setMonth(checkout.getMonth() + parseInt(duration));
+    checkout.setMonth(checkout.getMonth() + parseInt(duration, 10));
     
+    const price = parseInt(String(hostel.price).replace(/[^0-9]/g, ''), 10) || 0;
+    const totalAmount = price * parseInt(duration, 10);
+    const amountString = `UGX ${totalAmount.toLocaleString()}`;
+
+    if (window.apiClient && typeof window.apiClient.createBooking === 'function') {
+        try {
+            await apiClient.createBooking({
+                hostelId: hostel.id,
+                checkIn: checkin.toISOString().split('T')[0],
+                checkOut: checkout.toISOString().split('T')[0],
+                amount: amountString
+            });
+
+            if (window.securityManager) {
+                securityManager.logSecurityEvent('booking_created', {
+                    userId: user.id,
+                    hostelId: hostel.id
+                });
+            }
+
+            document.querySelector('.modal').remove();
+            alert(`✅ Booking request submitted!\n\nHostel: ${hostel.name}\nCheck-in: ${checkin.toLocaleDateString()}\nDuration: ${duration} months\nTotal: ${amountString}\n\nYour booking is pending confirmation.`);
+            return;
+        } catch (error) {
+            alert(error?.message || 'Unable to submit booking. Please try again later.');
+            return;
+        }
+    }
+
     const bookingId = `BK${Date.now()}`;
-    const price = parseInt(hostel.price.replace(/[^0-9]/g, ''));
-    const totalAmount = price * parseInt(duration);
-    
     const booking = {
         id: bookingId,
         userId: user.id,
@@ -331,18 +377,16 @@ function confirmBooking(hostelId) {
         checkIn: checkin.toISOString().split('T')[0],
         checkOut: checkout.toISOString().split('T')[0],
         duration: duration,
-        amount: `UGX ${totalAmount.toLocaleString()}`,
+        amount: amountString,
         status: 'pending',
         requirements: requirements,
         bookingDate: new Date().toISOString()
     };
     
-    // Save booking
     const bookings = JSON.parse(localStorage.getItem('bookings') || '[]');
     bookings.push(booking);
     localStorage.setItem('bookings', JSON.stringify(bookings));
     
-    // Log security event
     if (window.securityManager) {
         securityManager.logSecurityEvent('booking_created', {
             bookingId: bookingId,
@@ -351,22 +395,8 @@ function confirmBooking(hostelId) {
         });
     }
     
-    // Close modal
     document.querySelector('.modal').remove();
-    
-    // Show success message
-    alert(`
-        ✅ Booking Request Submitted!
-        
-        Booking ID: ${bookingId}
-        Hostel: ${hostel.name}
-        Check-in: ${checkin.toLocaleDateString()}
-        Duration: ${duration} months
-        Total: UGX ${totalAmount.toLocaleString()}
-        
-        Your booking is pending confirmation. 
-        You will receive an email with payment instructions.
-    `);
+    alert(`✅ Booking Request Submitted!\n\nBooking ID: ${bookingId}\nHostel: ${hostel.name}\nCheck-in: ${checkin.toLocaleDateString()}\nDuration: ${duration} months\nTotal: ${amountString}\n\nYour booking is pending confirmation.`);
 }
 
 function saveToFavorites(hostelId) {
@@ -709,13 +739,27 @@ function showUserMenu() {
     });
 }
 
-function viewMyBookings() {
+async function viewMyBookings() {
     const user = getCurrentUser();
     if (!user) return;
-    
-    const bookings = JSON.parse(localStorage.getItem('bookings') || '[]');
-    const myBookings = bookings.filter(b => b.userEmail === user.email);
-    
+
+    let myBookings = [];
+    if (window.apiClient && typeof window.apiClient.getBookings === 'function') {
+        try {
+            const response = await apiClient.getBookings();
+            if (response && Array.isArray(response.bookings)) {
+                myBookings = response.bookings;
+            }
+        } catch (error) {
+            console.warn('Unable to load bookings from API:', error);
+        }
+    }
+
+    if (myBookings.length === 0) {
+        const bookings = JSON.parse(localStorage.getItem('bookings') || '[]');
+        myBookings = bookings.filter(b => b.userEmail === user.email);
+    }
+
     if (myBookings.length === 0) {
         alert('You have no bookings yet.');
         return;
@@ -724,7 +768,7 @@ function viewMyBookings() {
     let message = 'My Bookings:\n\n';
     myBookings.forEach((booking, index) => {
         message += `${index + 1}. ${booking.hostelName}\n`;
-        message += `   Booking ID: ${booking.id}\n`;
+        message += `   Booking ID: ${booking.id || booking.id}\n`;
         message += `   Dates: ${booking.checkIn} to ${booking.checkOut}\n`;
         message += `   Amount: ${booking.amount}\n`;
         message += `   Status: ${booking.status}\n\n`;
@@ -764,18 +808,19 @@ function editProfile() {
 function logout() {
     if (confirm('Are you sure you want to logout?')) {
         if (window.securityManager) {
-            securityManager.logSecurityEvent('logout', { 
-                userId: getCurrentUser()?.id 
+            securityManager.logSecurityEvent('logout', {
+                userId: getCurrentUser()?.id
             });
         }
-        sessionStorage.clear();
+        sessionStorage.removeItem('currentUser');
+        sessionStorage.removeItem('authToken');
         window.location.href = 'index.html';
     }
 }
 
 // Initialize the page
-document.addEventListener('DOMContentLoaded', function() {
-    // Display hostels
+document.addEventListener('DOMContentLoaded', async function() {
+    hostels = await fetchHostels();
     displayHostels();
     
     // Initialize map

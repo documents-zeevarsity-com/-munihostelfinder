@@ -12,8 +12,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Initialize
     initializePage();
     
-    // Use firebaseManager when available, otherwise fallback to local securityManager
-    const authManager = window.firebaseManager || window.securityManager;
+    const authManager = window.apiClient || window.firebaseManager || window.securityManager;
 
     // Event Listeners
     togglePassword.addEventListener('click', togglePasswordVisibility);
@@ -54,24 +53,30 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
 
-        if (!authManager || typeof authManager.authenticate !== 'function') {
+        if (!authManager) {
             showError('Authentication system is not available. Please try again later.');
             return;
         }
 
+        let user;
         try {
-            // Authenticate user (supports both local and Firebase-based managers)
-            const maybeUser = authManager.authenticate(email, password);
-            const user = maybeUser && typeof maybeUser.then === 'function' ? await maybeUser : maybeUser;
+            if (authManager.login) {
+                const response = await authManager.login(email, password);
+                user = response.user || response;
+                if (response.token) {
+                    sessionStorage.setItem('authToken', response.token);
+                }
+            } else {
+                const maybeUser = authManager.authenticate(email, password);
+                user = maybeUser && typeof maybeUser.then === 'function' ? await maybeUser : maybeUser;
+            }
 
             if (!user) {
                 showError('Invalid email or password. Please try again.');
                 return;
             }
 
-            // Some auth systems may not include status; default to active
             const status = (user.status || 'active').toLowerCase();
-
             if (status === 'pending') {
                 showError('Your account is pending approval. Please contact the system administrator.');
                 return;
@@ -82,7 +87,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 return;
             }
 
-            // Store remember me preference
             if (rememberMe) {
                 localStorage.setItem('rememberedEmail', email);
                 localStorage.setItem('rememberMe', 'true');
@@ -91,14 +95,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 localStorage.removeItem('rememberMe');
             }
 
-            // Store user session (remove password if present)
             const safeUser = Object.assign({}, user);
             if (safeUser.password) delete safeUser.password;
             sessionStorage.setItem('currentUser', JSON.stringify(safeUser));
 
-            // Show success and redirect based on stored role
             showLoginSuccess(safeUser);
-
         } catch (error) {
             let message = error?.message || 'An error occurred during login. Please try again.';
             if (error?.code === 'auth/api-key-not-valid' || /api key not valid/i.test(message)) {

@@ -1,0 +1,93 @@
+/* Responsive and mobile-first media queries */
+
+/* Tablets and below (max 768px) */
+@media (max-width: 768px) {
+    :root {
+        --font-size-xxl: 1.5rem;
+        --font-size-xl: 1.25rem;
+        --spacing-lg: 1rem;
+        --spacing-xl: 1.5rem;
+    }
+    
+    .container {
+        padding: 0 var(--spacing-md);
+    }
+    
+    h1 { font-size: 1.5rem; }
+    h2 { font-size: 1.25rem; }
+}
+
+/* Small devices (max 480px) */
+@media (max-width: 480px) {
+    :root {
+        font-size: 14px;
+        --font-size-xxl: 1.25rem;
+        --font-size-xl: 1rem;
+        --font-size-lg: 0.95rem;
+        --spacing-lg: 0.75rem;
+        --spacing-xl: 1rem;
+    }
+    
+    .container {
+        padding: 0 var(--spacing-sm);
+    }
+    
+    .grid-2,
+    .grid-3,
+    .grid-4 {
+        grid-template-columns: 1fr;
+    }
+    
+    .btn {
+        padding: var(--spacing-sm) var(--spacing-md);
+        font-size: var(--font-size-sm);
+    }
+    
+    h1 { font-size: 1.25rem; }
+    h2 { font-size: 1rem; }
+    h3 { font-size: 0.95rem; }
+    
+    .hide-mobile {
+        display: none !important;
+    }
+    
+    .show-mobile {
+        display: block !important;
+    }
+}
+
+/* Large screens (min 1200px) */
+@media (min-width: 1200px) {
+    .container {
+        max-width: 1400px;
+    }
+}
+
+/* Print styles */
+@media print {
+    body {
+        background-color: var(--lighter);
+    }
+    
+    .no-print {
+        display: none !important;
+    }
+}
+
+/* Touch devices */
+@media (hover: none) and (pointer: coarse) {
+    .btn {
+        padding: var(--spacing-md) var(--spacing-lg);
+    }
+    
+    a {
+        padding: var(--spacing-xs);
+    }
+}
+
+/* Landscape orientation */
+@media (orientation: landscape) and (max-height: 500px) {
+    header {
+        position: relative;
+    }
+}

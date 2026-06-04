@@ -22,10 +22,36 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 function loadAllUsers(filter = '') {
+    usersContainer.innerHTML = '<p style="text-align: center; padding: 2rem;">Loading users...</p>';
+    
+    // Try to use REST API first
+    if (window.apiClient && typeof window.apiClient.getAllUsers === 'function') {
+        loadAllUsersViaAPI(filter);
+    } else {
+        loadAllUsersLocally(filter);
+    }
+}
+
+async function loadAllUsersViaAPI(filter = '') {
+    try {
+        // Note: This endpoint would need to be added to the backend
+        // For now, fall back to local if endpoint not available
+        usersContainer.innerHTML = '';
+        const users = securityManager.getUsers(currentUser);
+        displayUsersList(users, filter);
+    } catch (error) {
+        console.error('API error:', error);
+        loadAllUsersLocally(filter);
+    }
+}
+
+function loadAllUsersLocally(filter = '') {
     usersContainer.innerHTML = '';
-    
     const users = securityManager.getUsers(currentUser);
-    
+    displayUsersList(users, filter);
+}
+
+function displayUsersList(users, filter = '') {
     // Filter users if search term provided
     const filteredUsers = users.filter(user => 
         user.firstName?.toLowerCase().includes(filter.toLowerCase()) ||
