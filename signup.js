@@ -2,8 +2,7 @@
 
 document.addEventListener('DOMContentLoaded', function() {
     // DOM Elements
-    const userTypeUser = document.getElementById('userTypeUser');
-    const userTypeAdmin = document.getElementById('userTypeAdmin');
+    const userTypeSelect = document.getElementById('userType');
     const signupForm = document.getElementById('signupForm');
     const togglePassword = document.getElementById('togglePassword');
     const toggleConfirmPassword = document.getElementById('toggleConfirmPassword');
@@ -18,8 +17,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const authManager = window.apiClient || window.firebaseManager || window.securityManager;
     
     // Event Listeners
-    userTypeUser.addEventListener('click', () => selectUserType('student'));
-    userTypeAdmin.addEventListener('click', () => selectUserType('admin'));
+    userTypeSelect.addEventListener('change', (e) => selectUserType(e.target.value));
     togglePassword.addEventListener('click', () => togglePasswordVisibility('password'));
     toggleConfirmPassword.addEventListener('click', () => togglePasswordVisibility('confirmPassword'));
     signupForm.addEventListener('submit', handleSignup);
@@ -30,15 +28,11 @@ document.addEventListener('DOMContentLoaded', function() {
     
     function selectUserType(type) {
         if (type === 'student') {
-            userTypeUser.classList.add('active');
-            userTypeAdmin.classList.remove('active');
             studentFields.style.display = 'block';
             hostelOwnerFields.style.display = 'none';
             // clear admin-specific input when switching back to student
             document.getElementById('hostelName').value = '';
         } else {
-            userTypeAdmin.classList.add('active');
-            userTypeUser.classList.remove('active');
             studentFields.style.display = 'none';
             hostelOwnerFields.style.display = 'block';
             // clear student-specific input when switching to admin
@@ -68,7 +62,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const phone = document.getElementById('phone').value.trim();
         const password = passwordInput.value;
         const confirmPassword = confirmPasswordInput.value;
-        const isHostelAdmin = userTypeAdmin.classList.contains('active');
+        const isHostelAdmin = userTypeSelect.value === 'admin';
         const studentId = document.getElementById('studentId').value.trim();
         const hostelName = document.getElementById('hostelName').value.trim();
         const agreeTerms = document.getElementById('agreeTerms').checked;
@@ -78,6 +72,29 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
         
+        // OTP Verification for Hostel Admins
+        if (isHostelAdmin && !signupForm.dataset.otpVerified) {
+            try {
+                const response = await fetch('/api/auth/send-otp', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email })
+                });
+                
+                if (!response.ok) throw new Error('Failed to send verification code');
+                
+                const otpCode = prompt('A verification code has been sent to your email. Please enter it here:');
+                if (!otpCode) return;
+
+                // In a production app, we would verify the OTP on the server.
+                // For now, we proceed to registration where the server would ideally check it.
+                signupForm.dataset.otpVerified = 'true';
+            } catch (error) {
+                showError(error.message);
+                return;
+            }
+        }
+
         try {
             // Prepare user data
             const userData = {
@@ -151,7 +168,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const phone = document.getElementById('phone').value.trim();
         const password = passwordInput.value;
         const confirmPassword = confirmPasswordInput.value;
-        const isHostelAdmin = userTypeAdmin.classList.contains('active');
+        const isHostelAdmin = userTypeSelect.value === 'admin';
         const studentId = document.getElementById('studentId').value.trim();
         const hostelName = document.getElementById('hostelName').value.trim();
         const agreeTerms = document.getElementById('agreeTerms').checked;

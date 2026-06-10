@@ -1,103 +1,203 @@
 const express = require('express');
+const Joi = require('joi');
 const pool = require('../db');
 const { authenticate, authorize } = require('../middleware/auth');
+const { validate, schemas } = require('../validation');
+const asyncHandler = require('../utils/asyncHandler');
+const ApiError = require('../utils/ApiError');
+const hostelService = require('../services/hostelService');
 
 const router = express.Router();
 
-router.get('/', async (req, res) => {
-  const [rows] = await pool.query('SELECT * FROM hostels WHERE status = ? ORDER BY id DESC', ['active']);
-  const hostels = rows.map(row => ({
+// ---------------------------------------------------------------------------
+// Schemas
+// ---------------------------------------------------------------------------
+// ---------------------------------------------------------------------------
+// Helper: parse hostel row (JSON columns)
+// ---------------------------------------------------------------------------
+function parseHostel(row) {
+  if (!row) return null;
+  return {
     ...row,
-    features: row.features ? JSON.parse(row.features) : {},
-    photos: row.photos ? JSON.parse(row.photos) : []
-  }));
-  res.json({ hostels });
-});
+    features: row.features ? (typeof row.features === 'string' ? JSON.parse(row.features) : row.features) : {},
+    photos: row.photos ? (typeof row.photos === 'string' ? JSON.parse(row.photos) : row.photos) : [],
+  };
+}
 
-router.get('/:id', async (req, res) => {
-  const [rows] = await pool.query('SELECT * FROM hostels WHERE id = ?', [req.params.id]);
-  if (!rows.length) {
-    return res.status(404).json({ error: 'Hostel not found' });
+// ---------------------------------------------------------------------------
+// GET /api/hostels — public, with pagination & search/filter
+// Query params:
+//   page, limit, location, minPrice, maxPrice, wifi
+// ---------------------------------------------------------------------------
+router.get('/', validate(schemas.hostel.search, 'query'), asyncHandler(async (req, res) => {
+  const { page, limit, location, minPrice, maxPrice, wifi } = req.query;
+  const offset = (page - 1) * limit;
+
+  const where = [];
+  const params = [];
+
+  // Default: Public only sees active hostels
+  where.push('status = ?');
+  params.push('active');
+
+  // Generic Search (name, location, address)
+  if (req.query.search) {
+    const searchTerm = `%${req.query.search.trim()}%`;
+    where.push('(name LIKE ? OR location LIKE ? OR address LIKE ?)');
+    params.push(searchTerm, searchTerm, searchTerm);
   }
-  const hostel = rows[0];
-  hostel.features = hostel.features ? JSON.parse(hostel.features) : {};
-  hostel.photos = hostel.photos ? JSON.parse(hostel.photos) : [];
-  res.json({ hostel });
-});
 
-router.post('/', authenticate, authorize(['super_admin', 'hostel_admin']), async (req, res) => {
-  const { name, price, location, address, phone, email, capacity, description, features, image, status, photos } = req.body;
-  if (!name || !price || !location || !address || !capacity) {
-    return res.status(400).json({ error: 'Missing required hostel fields' });
+  // Filter by Location
+  if (location) {
+    where.push('location LIKE ?');
+    params.push(`%${location}%`);
   }
 
-  // Validate photos - max 5
-  const photoArray = Array.isArray(photos) ? photos.slice(0, 5) : [];
+  // Price range filters
+  if (minPrice !== undefined) {
+    where.push('CAST(price AS UNSIGNED) >= ?');
+    params.push(minPrice);
+  }
+  if (maxPrice !== undefined) {
+    where.push('CAST(price AS UNSIGNED) <= ?');
+    params.push(maxPrice);
+  }
 
-  const ownerId = req.user.role === 'hostel_admin' ? req.user.id : null;
-  const featurePayload = features ? JSON.stringify(features) : JSON.stringify({});
-  const photosPayload = photoArray.length > 0 ? JSON.stringify(photoArray) : JSON.stringify([]);
+  // Amenities filter (MySQL JSON search)
+  if (wifi !== undefined) {
+    where.push("JSON_EXTRACT(features, '$.wifi') = ?");
+    params.push(wifi);
+  }
 
-  const [result] = await pool.query(
-    'INSERT INTO hostels (name, price, location, address, phone, email, capacity, description, features, image, photos, status, ownerId, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())',
-    [name, price, location, address, phone || null, email || null, capacity, description || null, featurePayload, image || null, photosPayload, status || 'active', ownerId]
+  const whereClause = where.length ? `WHERE ${where.join(' AND ')}` : '';
+
+  // Count total
+  const [[{ total }]] = await pool.query(
+    `SELECT COUNT(id) as total FROM hostels ${whereClause}`,
+    params
   );
 
-  res.status(201).json({ hostelId: result.insertId });
-});
+  // Fetch page
+  const [rows] = await pool.query(
+    `SELECT * FROM hostels ${whereClause} ORDER BY createdAt DESC LIMIT ? OFFSET ?`,
+    [...params, parseInt(limit), parseInt(offset)]
+  );
 
-router.put('/:id', authenticate, authorize(['super_admin', 'hostel_admin']), async (req, res) => {
-  const [hostelRows] = await pool.query('SELECT * FROM hostels WHERE id = ?', [req.params.id]);
-  if (!hostelRows.length) {
-    return res.status(404).json({ error: 'Hostel not found' });
-  }
+  const hostels = rows.map(parseHostel);
 
-  const hostel = hostelRows[0];
-  if (req.user.role === 'hostel_admin' && hostel.ownerId !== req.user.id) {
-    return res.status(403).json({ error: 'Forbidden' });
-  }
-
-  const updates = [];
-  const params = [];
-  const allowed = ['name', 'price', 'location', 'address', 'phone', 'email', 'capacity', 'description', 'image', 'status'];
-  allowed.forEach(key => {
-    if (req.body[key] !== undefined) {
-      updates.push(`${key} = ?`);
-      params.push(req.body[key]);
-    }
+  res.json({
+    hostels,
+    pagination: {
+      page,
+      limit,
+      total,
+      pages: Math.ceil(total / limit),
+    },
   });
+}));
 
-  if (req.body.features) {
-    updates.push('features = ?');
-    params.push(JSON.stringify(req.body.features));
-  }
+// ---------------------------------------------------------------------------
+// GET /api/hostels/:id — public
+// ---------------------------------------------------------------------------
+router.get('/:id', asyncHandler(async (req, res) => {
+  const hostel = await hostelService.getHostelById(req.params.id);
+  res.json({ hostel: parseHostel(hostel) });
+}));
 
-  if (req.body.photos !== undefined) {
-    const photoArray = Array.isArray(req.body.photos) ? req.body.photos.slice(0, 5) : [];
-    updates.push('photos = ?');
-    params.push(JSON.stringify(photoArray));
-  }
+// ---------------------------------------------------------------------------
+// POST /api/hostels — create (admin)
+// ---------------------------------------------------------------------------
+router.post(
+  '/',
+  authenticate,
+  authorize(['super_admin', 'hostel_admin']),
+  validate(schemas.hostel.create),
+  asyncHandler(async (req, res) => {
+    const ownerId = req.user.role === 'hostel_admin' ? req.user.id : null;
+    const result = await hostelService.createHostel(req.body, ownerId);
+    res.status(201).json(result);
+  })
+);
 
-  if (!updates.length) {
-    return res.status(400).json({ error: 'No fields to update' });
-  }
+// ---------------------------------------------------------------------------
+// PUT /api/hostels/:id — update (admin)
+// ---------------------------------------------------------------------------
+router.put(
+  '/:id',
+  authenticate,
+  authorize(['super_admin', 'hostel_admin']),
+  validate(schemas.hostel.update),
+  asyncHandler(async (req, res) => {
+    const [hostelRows] = await pool.query('SELECT * FROM hostels WHERE id = ?', [req.params.id]);
+    if (!hostelRows.length) {
+      throw new ApiError(404, 'Hostel not found');
+    }
 
-  params.push(req.params.id);
-  await pool.query(`UPDATE hostels SET ${updates.join(', ')}, updatedAt = NOW() WHERE id = ?`, params);
-  res.json({ success: true });
-});
+    const hostel = hostelRows[0];
+    if (req.user.role === 'hostel_admin' && hostel.ownerId !== req.user.id) {
+      throw new ApiError(403, 'Forbidden');
+    }
 
-router.delete('/:id', authenticate, authorize(['super_admin', 'hostel_admin']), async (req, res) => {
-  const [hostelRows] = await pool.query('SELECT * FROM hostels WHERE id = ?', [req.params.id]);
-  if (!hostelRows.length) {
-    return res.status(404).json({ error: 'Hostel not found' });
-  }
-  const hostel = hostelRows[0];
-  if (req.user.role === 'hostel_admin' && hostel.ownerId !== req.user.id) {
-    return res.status(403).json({ error: 'Forbidden' });
-  }
-  await pool.query('DELETE FROM hostels WHERE id = ?', [req.params.id]);
-  res.json({ success: true });
-});
+    const updates = [];
+    const params = [];
+    const scalars = [
+      'name', 'price', 'location', 'address', 'phone', 'email',
+      'capacity', 'description', 'image', 'status',
+    ];
+
+    scalars.forEach((key) => {
+      if (req.body[key] !== undefined) {
+        updates.push(`${key} = ?`);
+        params.push(req.body[key]);
+      }
+    });
+
+    if (req.body.features !== undefined) {
+      updates.push('features = ?');
+      params.push(JSON.stringify(req.body.features));
+    }
+
+    if (req.body.photos !== undefined) {
+      updates.push('photos = ?');
+      params.push(JSON.stringify(req.body.photos));
+    }
+
+    if (!updates.length) {
+      throw new ApiError(400, 'No fields to update');
+    }
+
+    params.push(req.params.id);
+    await pool.query(
+      `UPDATE hostels SET ${updates.join(', ')}, updatedAt = NOW() WHERE id = ?`,
+      params
+    );
+
+    res.json({ success: true });
+  })
+);
+
+// ---------------------------------------------------------------------------
+// DELETE /api/hostels/:id — delete (admin)
+// ---------------------------------------------------------------------------
+router.delete(
+  '/:id',
+  authenticate,
+  authorize(['super_admin', 'hostel_admin']),
+  asyncHandler(async (req, res) => {
+    const [hostelRows] = await pool.query('SELECT * FROM hostels WHERE id = ?', [req.params.id]);
+    if (!hostelRows.length) {
+      throw new ApiError(404, 'Hostel not found');
+    }
+
+    const hostel = hostelRows[0];
+    if (req.user.role === 'hostel_admin' && hostel.ownerId !== req.user.id) {
+      throw new ApiError(403, 'Forbidden');
+    }
+
+    // Soft delete: keep the record but set status to inactive
+    await pool.query('UPDATE hostels SET status = "inactive", updatedAt = NOW() WHERE id = ?', [req.params.id]);
+    res.json({ success: true });
+  })
+);
 
 module.exports = router;

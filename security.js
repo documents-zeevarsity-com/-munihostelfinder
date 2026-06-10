@@ -247,19 +247,6 @@ function displayHostels() {
     if (!container) return;
     container.innerHTML = '';
 
-    const loggedIn = isUserLoggedIn();
-    const authLink = document.getElementById('authLink');
-    if (authLink) {
-        if (loggedIn) {
-            const user = JSON.parse(sessionStorage.getItem('currentUser'));
-            authLink.innerHTML = `<i class="fas fa-user"></i> ${user.firstName}`;
-            authLink.href = '#';
-        } else {
-            authLink.innerHTML = '<i class="fas fa-user"></i> Login';
-            authLink.href = 'index.html';
-        }
-    }
-
     const list = JSON.parse(localStorage.getItem('hostels') || JSON.stringify(hostels));
     list.forEach(hostel => {
         const card = document.createElement('div');

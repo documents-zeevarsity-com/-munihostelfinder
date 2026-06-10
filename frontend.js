@@ -445,22 +445,24 @@ function setupSearch() {
     
     if (!searchInput || !searchButton) return;
     
-    function performSearch() {
+    async function performSearch() {
         const searchTerm = searchInput.value.toLowerCase().trim();
         
-        if (!searchTerm) {
-            displayHostels();
-            return;
+        try {
+            // Call the backend API with the search term
+            const queryParams = new URLSearchParams({
+                search: searchTerm,
+                limit: 20
+            });
+            
+            const response = await fetch(`/api/hostels?${queryParams.toString()}`);
+            const data = await response.json();
+            
+            // The backend returns { hostels: [], pagination: {} }
+            displayHostels(data.hostels);
+        } catch (error) {
+            console.error('Search failed:', error);
         }
-        
-        const filteredHostels = loadHostels().filter(hostel => 
-            hostel.name.toLowerCase().includes(searchTerm) ||
-            hostel.location.toLowerCase().includes(searchTerm) ||
-            hostel.description?.toLowerCase().includes(searchTerm) ||
-            hostel.address?.toLowerCase().includes(searchTerm)
-        );
-        
-        displayHostels(filteredHostels);
     }
     
     searchButton.addEventListener('click', performSearch);
@@ -654,15 +656,11 @@ function updateUserNavigation() {
     const user = getCurrentUser();
     
     if (user) {
-        authLink.innerHTML = `<i class="fas fa-user"></i> ${user.firstName}`;
-        authLink.href = '#';
-        authLink.onclick = function(e) {
-            e.preventDefault();
-            showUserMenu();
-        };
+        authLink.innerHTML = `<span class="user-pill"><i class="fas fa-user-circle"></i> ${user.firstName}</span>`;
+        authLink.classList.add('logged-in');
     } else {
         authLink.innerHTML = '<i class="fas fa-user"></i> Login';
-        authLink.href = 'index.html';
+        authLink.classList.remove('logged-in');
     }
 }
 
@@ -671,21 +669,13 @@ function bindAuthLink() {
     const authLink = document.getElementById('authLink');
     if (!authLink) return;
 
-    // remove previous handlers
-    authLink.replaceWith(authLink.cloneNode(true));
-    const fresh = document.getElementById('authLink');
-    if (!fresh) return;
-
-    fresh.addEventListener('click', function(e) {
+    authLink.addEventListener('click', function(e) {
         const user = getCurrentUser();
         if (user) {
             e.preventDefault();
             showUserMenu();
         } else {
-            // navigate to login page
-            // allow normal navigation if href present
-            e.preventDefault();
-            window.location.href = 'index.html';
+            // Allow normal navigation to index.html if href is present
         }
     });
 }
@@ -818,6 +808,31 @@ function logout() {
     }
 }
 
+// Scroll spy to highlight active nav link
+function initScrollSpy() {
+    const sections = document.querySelectorAll('section[id]');
+    const navLinks = document.querySelectorAll('header nav ul li a');
+
+    window.addEventListener('scroll', () => {
+        let current = '';
+        const scrollY = window.pageYOffset;
+
+        sections.forEach(section => {
+            const sectionTop = section.offsetTop - 150;
+            if (scrollY >= sectionTop) {
+                current = section.getAttribute('id');
+            }
+        });
+
+        navLinks.forEach(link => {
+            link.classList.remove('active');
+            if (link.getAttribute('href') === `#${current}`) {
+                link.classList.add('active');
+            }
+        });
+    });
+}
+
 // Initialize the page
 document.addEventListener('DOMContentLoaded', async function() {
     hostels = await fetchHostels();
@@ -831,6 +846,14 @@ document.addEventListener('DOMContentLoaded', async function() {
     
     // Update user navigation
     updateUserNavigation();
+    bindAuthLink();
+    
+    // Initialize scroll spy
+    initScrollSpy();
+    
+    // Auto-update copyright year
+    const yearEl = document.getElementById('copyright-year');
+    if (yearEl) yearEl.textContent = new Date().getFullYear();
     
     // Currency exchange removed; prices are shown in UGX only
     

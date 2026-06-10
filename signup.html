@@ -16,20 +16,19 @@
                 <h1>Muni Hostel Finder</h1>
             </div>
             <h2>Create Account</h2>
-            <p>Sign up to find your perfect hostel</p>
+            <p id="signupSubtitle">Sign up to find your perfect hostel</p>
         </div>
         
         <div class="login-body">
-            <div class="user-type-selector">
-                <div class="user-type active" id="userTypeUser">
-                    <i class="fas fa-user"></i> Student
-                </div>
-                <div class="user-type" id="userTypeAdmin">
-                    <i class="fas fa-user-shield"></i> Hostel Admin
-                </div>
-            </div>
-            
             <form id="signupForm">
+                <div class="form-group">
+                    <label for="userType">Register As *</label>
+                    <select id="userType" class="form-control" required>
+                        <option value="student">Student</option>
+                        <option value="admin">Hostel Admin</option>
+                    </select>
+                </div>
+
                 <div class="form-row">
                     <div class="form-group">
                         <label for="firstName">First Name *</label>
@@ -73,11 +72,13 @@
                 </div>
                 
                 <div class="form-group" id="studentFields">
+                    <h3 style="font-size: 1.1rem; margin-bottom: 1rem; color: #a02c2c; border-bottom: 1px solid #eee; padding-bottom: 5px;">Student Information</h3>
                     <label for="studentId">Student ID (Optional)</label>
                     <input type="text" id="studentId" class="form-control" placeholder="Enter student ID">
                 </div>
                 
                 <div class="form-group" id="hostelOwnerFields" style="display: none;">
+                    <h3 style="font-size: 1.1rem; margin-bottom: 1rem; color: #a02c2c; border-bottom: 1px solid #eee; padding-bottom: 5px;">Hostel Information</h3>
                     <label for="hostelName">Hostel Name</label>
                     <input type="text" id="hostelName" class="form-control" placeholder="Enter hostel name">
                 </div>
