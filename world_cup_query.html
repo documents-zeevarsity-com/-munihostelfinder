@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>World Cup Support Query</title>
+    <style>
+        :root {
+            --tiktok-cyan: #69C9D0;
+            --tiktok-red: #EE1D52;
+            --tiktok-black: #010101;
+        }
+        body {
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            background-color: var(--tiktok-black);
+            color: white;
+            overflow: hidden;
+        }
+        .container {
+            width: 90%;
+            max-width: 400px;
+            text-align: center;
+            padding: 30px;
+            border: 2px solid var(--tiktok-cyan);
+            border-radius: 20px;
+            box-shadow: 5px 5px 0px var(--tiktok-red);
+            background: rgba(255, 255, 255, 0.05);
+        }
+        #answerContainer {
+            display: none; /* Hidden by default */
+            margin-top: 20px;
+            padding: 15px;
+            text-align: left;
+            animation: slideUp 0.5s ease-out;
+        }
+        @keyframes slideUp {
+            from { transform: translateY(50px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+        .shake {
+            animation: shake 0.5s;
+        }
+        .countdown-timer {
+            font-size: 5rem;
+            font-weight: 900;
+            color: var(--tiktok-cyan);
+            text-shadow: 4px 4px var(--tiktok-red);
+            margin: 20px 0;
+        }
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-10px); }
+            75% { transform: translateX(10px); }
+        }
+        button {
+            background-color: white;
+            color: black;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            font-size: 18px;
+            font-weight: bold;
+            animation: pulse 1.5s infinite;
+        }
+        button:hover {
+            background-color: var(--tiktok-cyan);
+        }
+        h1 {
+            font-size: 2rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px var(--tiktok-red);
+        }
+        ol {
+            padding-left: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 id="mainTitle">The Real Tea ☕</h1>
+        <p id="question"><strong>Question:</strong> Why are Ugandans NOT supporting South Africa this time? 🤔</p>
+        <button id="showAnswerButton">Reveal the Truth 🤫</button>
+        <div id="answerContainer">
+            <!-- Answer will be loaded here by JavaScript -->
+        </div>
+    </div>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const showAnswerButton = document.getElementById('showAnswerButton');
+            const answerContainer = document.getElementById('answerContainer');
+            const container = document.querySelector('.container');
+            
+            // TikTok-style pop sound effect
+            // Using a stable Pixabay CDN link as Mixkit preview links are often blocked or expire
+            const popSound = new Audio('https://cdn.pixabay.com/audio/2022/03/10/audio_c8c8a730a9.mp3');
+            popSound.preload = 'auto';
+
+            const provideAnswer = async () => {
+                popSound.play().catch(e => console.warn("Sound playback was blocked or failed:", e));
+                
+                container.classList.add('shake');
+                
+                try {
+                    // Fetch the tea from the Python Flask API
+                    const response = await fetch('/api/tea');
+                    const data = await response.json();
+                    
+                    const itemsHtml = data.items.map(item => 
+                        `<p>${item.icon} <b>${item.label}</b> ${item.text}</p>`
+                    ).join('');
+
+                    answerContainer.innerHTML = `
+                        <h3 style="color:var(--tiktok-cyan); text-align:center;">${data.title}</h3>
+                        <div style="font-size: 1.3rem; line-height: 2; text-align: center;">
+                            ${itemsHtml}
+                        </div>
+                        <p style="text-align:center; font-weight:bold; color:var(--tiktok-red); font-size: 1.5rem;">${data.footer}</p>
+                    `;
+                } catch (error) {
+                    answerContainer.innerHTML = `<p style="text-align:center;">⚠️ Connection to Python server failed!</p>`;
+                }
+
+                answerContainer.style.display = 'block'; // Make the answer visible
+                showAnswerButton.style.display = 'none';
+            };
+
+            const startCountdown = () => {
+                showAnswerButton.style.display = 'none';
+                const countdownDisplay = document.createElement('div');
+                countdownDisplay.className = 'countdown-timer';
+                container.insertBefore(countdownDisplay, answerContainer);
+
+                let count = 3;
+                countdownDisplay.innerText = "👀"; // Initial hype emoji
+
+                const interval = setInterval(() => {
+                    if (count > 0) {
+                        countdownDisplay.innerText = count;
+                        count--;
+                    } else {
+                        clearInterval(interval);
+                        countdownDisplay.remove();
+                        provideAnswer();
+                    }
+                }, 700); // Faster than 1s to keep the TikTok pace snappy
+            };
+
+            if (showAnswerButton && answerContainer) {
+                showAnswerButton.addEventListener('click', startCountdown);
+            }
+        });
+    </script>
+</body>
+</html>

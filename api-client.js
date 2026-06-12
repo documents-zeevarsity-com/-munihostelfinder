@@ -62,8 +62,14 @@
     deleteHostel(id) {
       return request(`/hostels/${id}`, { method: 'DELETE' });
     },
-    getAllUsers() {
-      return request('/users');
+    getAllUsers(page = 1, limit = 20) {
+      return request(`/users?page=${page}&limit=${limit}`);
+    },
+    updateUserProfile(payload) {
+      return request('/users/me', { method: 'PUT', body: JSON.stringify(payload) });
+    },
+    changePassword(payload) {
+      return request('/auth/password', { method: 'PUT', body: JSON.stringify(payload) });
     }
   };
 
