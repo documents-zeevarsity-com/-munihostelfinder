@@ -8,6 +8,14 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="login.css">
 </head>
+<style>
+    .auth-status-indicator {
+        position: fixed;
+        bottom: 10px;
+        right: 10px;
+        font-size: 10px;
+    }
+</style>
 <body>
     <div class="login-container">
         <div class="login-header">
@@ -64,6 +72,10 @@
         </div>
     </div>
 
+    <div id="authStatus" class="auth-status-indicator text-muted">
+        <i class="fas fa-circle-notch fa-spin"></i> Initializing Auth...
+    </div>
+
     <!-- Firebase SDK (compat version) -->
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
@@ -79,4 +91,3 @@
     <script src="js/login.js"></script>
 </body>
 </html>
-

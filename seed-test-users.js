@@ -1,98 +1,74 @@
-/**
- * Seed Test Users Script
- * Creates 3 test accounts: Student, Hostel Admin, and Super Admin
- * 
- * Usage: node seed-test-users.js
- */
-
-require('dotenv').config();
+const mysql = require('mysql2/promise');
 const bcrypt = require('bcryptjs');
-const pool = require('./db');
+require('dotenv').config();
 
-const TEST_USERS = [
-  {
-    firstName: 'John',
-    lastName: 'Student',
-    email: 'student@test.com',
-    password: 'Student123',
-    phone: '+1234567890',
-    role: 'user',
-    status: 'active'
-  },
-  {
-    firstName: 'Jane',
-    lastName: 'Admin',
-    email: 'admin@test.com',
-    password: 'Admin123',
-    phone: '+1987654321',
-    role: 'hostel_admin',
-    status: 'active'
-  },
-  {
-    firstName: 'Super',
-    lastName: 'User',
-    email: 'superadmin@test.com',
-    password: 'SuperAdmin123',
-    phone: '+1555555555',
-    role: 'super_admin',
-    status: 'active'
-  }
-];
-
-async function seedUsers() {
-  try {
-    console.log('🌱 Starting to seed test users...\n');
-
-    for (const userData of TEST_USERS) {
-      try {
-        // Check if user already exists
-        const [existing] = await pool.query(
-          'SELECT id FROM users WHERE email = ?',
-          [userData.email.toLowerCase()]
-        );
-
-        if (existing.length > 0) {
-          console.log(`⏭️  User "${userData.email}" already exists, skipping...`);
-          continue;
-        }
-
-        // Hash password
-        const passwordHash = await bcrypt.hash(userData.password, 12);
-
-        // Insert user
-        const [result] = await pool.query(
-          'INSERT INTO users (firstName, lastName, email, phone, passwordHash, role, status, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?, ?, NOW(), NOW())',
-          [
-            userData.firstName,
-            userData.lastName,
-            userData.email.toLowerCase(),
-            userData.phone,
-            passwordHash,
-            userData.role,
-            userData.status
-          ]
-        );
-
-        console.log(`✅ Created ${userData.role.toUpperCase()}: ${userData.email}`);
-        console.log(`   Password: ${userData.password}\n`);
-      } catch (err) {
-        console.error(`❌ Error creating user ${userData.email}:`, err.message);
-      }
-    }
-
-    console.log('\n📋 Test Users Summary:');
-    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-    TEST_USERS.forEach(user => {
-      console.log(`Role: ${user.role.padEnd(15)} | Email: ${user.email.padEnd(25)} | Password: ${user.password}`);
+async function seed() {
+    const connection = await mysql.createConnection({
+        host: process.env.DB_HOST || '127.0.0.1',
+        user: process.env.DB_USER || 'root',
+        password: process.env.DB_PASSWORD,
+        database: process.env.DB_NAME || 'munihostelfinder'
     });
-    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
 
-    console.log('✨ Seeding complete!');
-    process.exit(0);
-  } catch (error) {
-    console.error('Fatal error:', error);
-    process.exit(1);
-  }
+    console.log('Connected to database. Seeding users...');
+
+    const testUsers = [
+        {
+            firstName: 'John',
+            lastName: 'Student',
+            email: 'student@test.com',
+            phone: '256700000001',
+            password: 'Student123',
+            role: 'user'
+        },
+        {
+            firstName: 'Hostel',
+            lastName: 'Manager',
+            email: 'admin@test.com',
+            phone: '256700000002',
+            password: 'Admin123',
+            role: 'hostel_admin'
+        },
+        {
+            firstName: 'Super',
+            lastName: 'Admin',
+            email: 'superadmin@test.com',
+            phone: '256700000003',
+            password: 'SuperAdmin123',
+            role: 'super_admin'
+        }
+    ];
+
+    try {
+        for (const user of testUsers) {
+            const passwordHash = await bcrypt.hash(user.password, 12);
+            const now = new Date().toISOString().slice(0, 19).replace('T', ' ');
+
+            const [rows] = await connection.execute(
+                'SELECT id FROM users WHERE email = ?',
+                [user.email]
+            );
+
+            if (rows.length === 0) {
+                await connection.execute(
+                    `INSERT INTO users (firstName, lastName, email, phone, passwordHash, role, status, createdAt, updatedAt) 
+                     VALUES (?, ?, ?, ?, ?, ?, 'active', ?, ?)`,
+                    [user.firstName, user.lastName, user.email, user.phone, passwordHash, user.role, now, now]
+                );
+                console.log(`✅ Created user: ${user.email}`);
+            } else {
+                console.log(`ℹ️ User ${user.email} already exists, skipping.`);
+            }
+        }
+        console.log('Seed completed successfully.');
+    } catch (error) {
+        console.error('Error seeding database:', error);
+    } finally {
+        await connection.end();
+    }
 }
 
-seedUsers();
+seed().catch(err => {
+    console.error(err);
+    process.exit(1);
+});

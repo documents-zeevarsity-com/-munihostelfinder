@@ -87,7 +87,16 @@
 
     try {
       const userCred = await firebaseManager.auth.signInWithEmailAndPassword(email, password);
-      return mapFirebaseUser(userCred.user);
+      const user = mapFirebaseUser(userCred.user);
+      user.token = await userCred.user.getIdToken();
+
+      // Fetch additional profile data (role, status, etc.) from Firestore
+      const doc = await firebaseManager.db.collection('users').doc(user.uid).get();
+      if (doc.exists) {
+        Object.assign(user, doc.data());
+      }
+
+      return user;
     } catch (e) {
       // If the Firebase config is invalid (e.g., placeholder API key), fall back to local auth.
       if (e && (e.code === 'auth/api-key-not-valid' || /api key not valid/i.test(e.message || ''))) {
@@ -139,8 +148,9 @@
     if (!user) return false;
     // permissions stored on user doc as array
     if (user.permissions && Array.isArray(user.permissions)) return user.permissions.includes(permission);
-    // fallback to role-based rules: superadmin -> all
-    if (user.role === 'superadmin') return true;
+    // fallback to role-based rules: super_admin or superadmin -> all
+    const normalizedRole = (user.role || '').toLowerCase().replace('_', '');
+    if (normalizedRole === 'superadmin') return true;
     // otherwise, no
     return false;
   }

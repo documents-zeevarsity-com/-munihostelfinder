@@ -1,9 +1,12 @@
 require('dotenv').config();
 const express = require('express');
+const admin = require('firebase-admin');
+const path = require('path');
 const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
 const rateLimit = require('express-rate-limit');
+const pool = require('./db');
 const swaggerJsDoc = require('swagger-jsdoc');
 const swaggerUi = require('swagger-ui-express');
 
@@ -13,6 +16,17 @@ const hostelRoutes = require('./routes/hostels');
 const bookingRoutes = require('./routes/bookings');
 
 const app = express();
+
+// ---------------------------------------------------------------------------
+// Firebase Admin Initialization
+// ---------------------------------------------------------------------------
+if (process.env.FIREBASE_SERVICE_ACCOUNT_PATH) {
+  const serviceAccount = require(path.resolve(process.env.FIREBASE_SERVICE_ACCOUNT_PATH));
+  admin.initializeApp({
+    credential: admin.credential.cert(serviceAccount)
+  });
+  console.log('Firebase Admin initialized');
+}
 
 // ---------------------------------------------------------------------------
 // Startup Validation

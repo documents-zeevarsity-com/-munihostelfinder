@@ -1,4 +1,5 @@
 const jwt = require('jsonwebtoken');
+const admin = require('firebase-admin');
 const pool = require('../db');
 
 const authenticate = async (req, res, next) => {
@@ -9,6 +10,25 @@ const authenticate = async (req, res, next) => {
 
   const token = authHeader.split(' ')[1];
   try {
+    // 1. Try Firebase Token Verification first (if initialized)
+    try {
+      if (admin.apps.length > 0) {
+        const decodedToken = await admin.auth().verifyIdToken(token);
+        const [rows] = await pool.query(
+          'SELECT id, firstName, lastName, email, role, status, hostelAssigned FROM users WHERE email = ?',
+          [decodedToken.email]
+        );
+        
+        if (rows.length > 0) {
+          req.user = rows[0];
+          return next();
+        }
+      }
+    } catch (fbError) {
+      // If Firebase fails (invalid token), we fall through to local JWT check
+    }
+
+    // 2. Local JWT Verification
     const payload = jwt.verify(token, process.env.JWT_SECRET);
     const [rows] = await pool.query('SELECT id, firstName, lastName, email, role, status, hostelAssigned FROM users WHERE id = ?', [payload.userId]);
     if (rows.length === 0) {

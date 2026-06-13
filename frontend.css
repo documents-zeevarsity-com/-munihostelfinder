@@ -138,14 +138,25 @@ nav a:hover {
     background: none;
     border: none;
     color: white;
-    font-size: 1.5rem;
+    font-size: 1.75rem;
     cursor: pointer;
-    padding: 0.5rem;
+    padding: 12px;
+    z-index: 101;
+    border-radius: 8px;
+    transition: background-color 0.2s, transform 0.1s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.menu-toggle:active {
+    background-color: rgba(255, 255, 255, 0.1);
+    transform: scale(0.95);
 }
 
 /* Mobile Navigation */
 .mobile-nav {
-    display: none;
+    display: flex;
     position: fixed;
     top: 0;
     left: 0;
@@ -156,10 +167,17 @@ nav a:hover {
     flex-direction: column;
     justify-content: center;
     align-items: center;
+    /* Animation properties */
+    transform: translateX(-100%);
+    visibility: hidden;
+    opacity: 0;
+    transition: transform 0.4s cubic-bezier(0.77, 0, 0.175, 1), opacity 0.4s, visibility 0.4s;
 }
 
 .mobile-nav.active {
-    display: flex;
+    transform: translateX(0);
+    visibility: visible;
+    opacity: 1;
 }
 
 .mobile-nav ul {
@@ -171,7 +189,22 @@ nav a:hover {
 
 .mobile-nav li {
     margin: 1.5rem 0;
+    opacity: 0;
+    transform: translateY(20px);
+    transition: opacity 0.5s ease, transform 0.5s ease;
 }
+
+/* Staggered entrance for list items when active */
+.mobile-nav.active li {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.mobile-nav.active li:nth-child(1) { transition-delay: 0.1s; }
+.mobile-nav.active li:nth-child(2) { transition-delay: 0.15s; }
+.mobile-nav.active li:nth-child(3) { transition-delay: 0.2s; }
+.mobile-nav.active li:nth-child(4) { transition-delay: 0.25s; }
+.mobile-nav.active li:nth-child(5) { transition-delay: 0.3s; }
 
 .mobile-nav a {
     color: white;
@@ -241,9 +274,10 @@ nav a:hover {
 .hero-content {
     position: relative;
     z-index: 1;
-    max-width: 960px;
+    max-width: 100%;
+    width: 90%;
     margin: 0 auto;
-    padding: 2rem;
+    padding: 1.5rem;
     background: rgba(255,255,255,0.04);
     border-radius: 12px;
     -webkit-backdrop-filter: blur(6px);
@@ -670,6 +704,13 @@ footer {
 @media (max-width: 768px) {
     .header-container {
         padding: 0.5rem 1rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .logo {
+        flex: 1;
     }
 
     .logo h1 {
@@ -682,31 +723,45 @@ footer {
 
     .menu-toggle {
         display: block;
+        margin-left: 1rem;
+    }
+
+    #themeToggleContainer {
+        margin-top: 0 !important;
     }
 
     .hero h2 {
-        font-size: 1.8rem;
+        font-size: 1.75rem;
+        line-height: 1.2;
     }
 
     .hero p {
-        font-size: 1rem;
+        font-size: 0.95rem;
+        margin-bottom: 1rem;
     }
 
     .search-box {
         flex-direction: column;
         border-radius: 10px;
+        padding: 12px;
+        gap: 10px;
+        background: white;
+        width: 100%;
+        margin: 1.5rem auto;
     }
 
     .search-box input {
         width: 100%;
-        border-radius: 10px 10px 0 0;
-        padding: 1rem;
+        border-radius: 6px;
+        padding: 0.85rem;
+        text-align: left;
+        border: 1px solid #e2e8f0;
     }
 
     .search-box button {
         width: 100%;
-        border-radius: 0 0 10px 10px;
-        padding: 1rem;
+        border-radius: 8px;
+        padding: 0.85rem;
     }
 
     .hostels-grid {
@@ -735,6 +790,17 @@ footer {
 
     .hero-actions .btn {
         width: 100%;
+    }
+
+    .search-box {
+        padding: 10px;
+        gap: 8px;
+        margin: 1rem auto;
+    }
+
+    .search-box input {
+        font-size: 0.9rem;
+        padding: 0.75rem;
     }
 }
 

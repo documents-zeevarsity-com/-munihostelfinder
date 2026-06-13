@@ -512,21 +512,25 @@ document.addEventListener('DOMContentLoaded', initFaqAccordion);
 function initMobileMenu() {
     const headerContainer = document.querySelector('.header-container');
     const mobileNav = document.querySelector('.mobile-nav');
-    if (!headerContainer || !mobileNav) return;
+    if (!mobileNav) return;
 
-    // Create menu toggle if not present
-    if (!headerContainer.querySelector('#menuToggle')) {
-        const btn = document.createElement('button');
+    let btn = document.getElementById('menuToggle');
+
+    // Create menu toggle if not present (fallback)
+    if (!btn && headerContainer) {
+        btn = document.createElement('button');
         btn.id = 'menuToggle';
         btn.className = 'menu-toggle';
         btn.type = 'button';
         btn.setAttribute('aria-label', 'Open menu');
         btn.innerHTML = '<i class="fas fa-bars"></i>';
-        // Insert before nav for better layout
         const nav = headerContainer.querySelector('nav');
         headerContainer.insertBefore(btn, nav);
+    }
 
-        btn.addEventListener('click', () => {
+    if (btn) {
+        btn.addEventListener('click', (e) => {
+            e.preventDefault();
             mobileNav.classList.add('active');
             document.body.style.overflow = 'hidden';
             populateMobileNav();

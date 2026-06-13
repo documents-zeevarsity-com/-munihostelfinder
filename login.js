@@ -69,6 +69,10 @@ document.addEventListener('DOMContentLoaded', function() {
             } else {
                 const maybeUser = authManager.authenticate(email, password);
                 user = maybeUser && typeof maybeUser.then === 'function' ? await maybeUser : maybeUser;
+                // If using Firebase, the token is now attached to the user object
+                if (user && user.token) {
+                    sessionStorage.setItem('authToken', user.token);
+                }
             }
 
             if (!user) {

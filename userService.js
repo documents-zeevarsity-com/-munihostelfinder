@@ -35,4 +35,34 @@ const updateProfile = async (userId, updateData) => {
   await pool.query(`UPDATE users SET ${updates.join(', ')}, updatedAt = NOW() WHERE id = ?`, params);
 };
 
-module.exports = { getAllUsers, updateProfile };
+const updateUserRole = async (userId, role) => {
+  const [result] = await pool.query(
+    'UPDATE users SET role = ?, updatedAt = NOW() WHERE id = ?',
+    [role, userId]
+  );
+  if (result.affectedRows === 0) throw new ApiError(404, 'User not found');
+};
+
+const updateUserStatus = async (userId, status) => {
+  const [result] = await pool.query(
+    'UPDATE users SET status = ?, updatedAt = NOW() WHERE id = ?',
+    [status, userId]
+  );
+  if (result.affectedRows === 0) throw new ApiError(404, 'User not found');
+};
+
+const assignHostelToAdmin = async (userId, hostelId) => {
+  const [result] = await pool.query(
+    'UPDATE users SET hostelAssigned = ?, updatedAt = NOW() WHERE id = ?',
+    [hostelId, userId]
+  );
+  if (result.affectedRows === 0) throw new ApiError(404, 'User not found');
+};
+
+module.exports = {
+  getAllUsers,
+  updateProfile,
+  updateUserRole,
+  updateUserStatus,
+  assignHostelToAdmin
+};

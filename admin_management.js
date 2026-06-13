@@ -2,7 +2,8 @@
 
 // Check if user is super admin
 const currentUser = JSON.parse(sessionStorage.getItem('currentUser') || 'null');
-if (!currentUser || currentUser.role !== 'super_admin') {
+const userRole = (currentUser?.role || '').toLowerCase().replace('_', '');
+if (!currentUser || userRole !== 'superadmin') {
     alert('❌ Access denied. Super admin privileges required.');
     window.location.href = 'backend.html';
 }
@@ -34,10 +35,10 @@ function loadAllUsers(filter = '') {
 
 async function loadAllUsersViaAPI(filter = '') {
     try {
-        // Note: This endpoint would need to be added to the backend
-        // For now, fall back to local if endpoint not available
         usersContainer.innerHTML = '';
-        const users = securityManager.getUsers(currentUser);
+        const data = await window.apiClient.getAllUsers();
+        // The API might return { users: [], total: 0 } or just the array
+        const users = Array.isArray(data) ? data : (data.users || []);
         displayUsersList(users, filter);
     } catch (error) {
         console.error('API error:', error);
@@ -156,11 +157,11 @@ function displayUsersList(users, filter = '') {
 }
 
 function displayRoleStats() {
-    const users = securityManager.getUsers(currentUser);
-    const hostels = JSON.parse(localStorage.getItem('hostels') || '[]');
-    const bookings = JSON.parse(localStorage.getItem('bookings') || '[]');
-    
-    const roleCounts = users.reduce((acc, user) => {
+    // Fetch users from API for stats
+    window.apiClient.getAllUsers().then(data => {
+        const users = Array.isArray(data) ? data : (data.users || []);
+        const hostels = JSON.parse(localStorage.getItem('hostels') || '[]'); // Still local for now
+        const roleCounts = users.reduce((acc, user) => {
         acc[user.role] = (acc[user.role] || 0) + 1;
         return acc;
     }, {});
@@ -234,9 +235,10 @@ function displayRoleStats() {
     
     // Add event listeners to quick action buttons
     document.getElementById('createHostelAdminBtn').addEventListener('click', createHostelAdmin);
-    document.getElementById('viewSecurityLogsBtn').addEventListener('click', viewSecurityLogs);
-    document.getElementById('exportSystemDataBtn').addEventListener('click', exportSystemData);
-    document.getElementById('assignAllHostelsBtn').addEventListener('click', bulkAssignHostels);
+        // These will be implemented in a later step
+        // document.getElementById('viewSecurityLogsBtn').addEventListener('click', viewSecurityLogs);
+        // document.getElementById('exportSystemDataBtn').addEventListener('click', exportSystemData);
+        // document.getElementById('assignAllHostelsBtn').addEventListener('click', bulkAssignHostels);
 }
 
 function setupEventListeners() {
@@ -318,12 +320,14 @@ function attachEventListenersToCards() {
 }
 
 function editUserRole(userId) {
-    const users = securityManager.getUsers(currentUser);
-    const user = users.find(u => u.id === userId);
-    
-    if (!user) {
-        alert('User not found');
-        return;
+    // Get the user from the currently displayed list (already fetched via API)
+    const userCard = document.querySelector(`.admin-card button[data-user-id="${userId}"]`).closest('.admin-card');
+    const user = {
+        id: userId,
+        firstName: userCard.querySelector('h3').textContent.split(' ')[0],
+        lastName: userCard.querySelector('h3').textContent.split(' ')[1],
+        email: userCard.querySelector('small').textContent,
+        role: userCard.querySelector('.admin-role').textContent.toLowerCase().replace(' ', '_')
     }
     
     if (user.role === 'super_admin') {
@@ -334,12 +338,11 @@ function editUserRole(userId) {
     const newRole = prompt(`Change role for ${user.firstName} ${user.lastName}\n\nCurrent: ${user.role}\n\nEnter new role (hostel_admin or user):`, user.role);
     
     if (!newRole || !['hostel_admin', 'user'].includes(newRole)) {
-        alert('Invalid role');
+        alert('Invalid role. Please enter "hostel_admin" or "user".');
         return;
     }
     
-    try {
-        securityManager.updateUserRole(userId, newRole, currentUser);
+    window.apiClient.updateUserRole(userId, newRole).then(() => {
         alert('✅ Role updated successfully');
         loadAllUsers();
         displayRoleStats();
@@ -348,12 +351,18 @@ function editUserRole(userId) {
     }
 }
 
-function assignHostelToAdmin(userId) {
-    const users = securityManager.getUsers(currentUser);
-    const user = users.find(u => u.id === userId);
-    
-    if (!user) {
-        alert('User not found');
+async function assignHostelToAdmin(userId) {
+    // Get the user from the currently displayed list
+    const userCard = document.querySelector(`.admin-card button[data-user-id="${userId}"]`).closest('.admin-card');
+    const user = {
+        id: userId,
+        firstName: userCard.querySelector('h3').textContent.split(' ')[0],
+        lastName: userCard.querySelector('h3').textContent.split(' ')[1],
+        role: userCard.querySelector('.admin-role').textContent.toLowerCase().replace(' ', '_')
+    };
+
+    if (!user) { // Should not happen if userCard was found
+        alert('User data not available.');
         return;
     }
     
@@ -362,8 +371,16 @@ function assignHostelToAdmin(userId) {
         return;
     }
     
-    const hostels = JSON.parse(localStorage.getItem('hostels') || '[]');
-    const unassignedHostels = hostels.filter(h => !h.ownerId);
+    let allHostels = [];
+    try {
+        const response = await window.apiClient.getHostels();
+        allHostels = Array.isArray(response) ? response : (response.hostels || []);
+    } catch (error) {
+        console.error('Failed to fetch hostels from API:', error);
+        alert('Failed to load hostels. Please try again.');
+        return;
+    }
+    const unassignedHostels = allHostels.filter(h => !h.ownerId);
     const assignedHostels = hostels.filter(h => h.ownerId === userId);
     
     if (unassignedHostels.length === 0 && assignedHostels.length === 0) {
@@ -384,25 +401,15 @@ function assignHostelToAdmin(userId) {
     
     const selection = prompt(message + '\nEnter hostel number to assign (or leave empty to unassign):');
     
-    if (selection === null) return;
+    if (selection === null) return; // User cancelled
     
-    if (selection === '') {
-        // Unassign all hostels from this admin
-        hostels.forEach(h => {
-            if (h.ownerId === userId) {
-                h.ownerId = null;
-            }
+    if (selection === '') { // User wants to unassign
+        await window.apiClient.assignHostelToAdmin(userId, null).then(() => {
+            alert('✅ Hostel unassigned successfully');
+            loadAllUsers();
+        }).catch(error => {
+            alert('❌ Error unassigning hostel: ' + (error.message || 'Unknown error'));
         });
-        
-        // Update user
-        const userIndex = users.findIndex(u => u.id === userId);
-        users[userIndex].hostelId = null;
-        users[userIndex].hostelName = null;
-        
-        localStorage.setItem('hostels', JSON.stringify(hostels));
-        localStorage.setItem('secureUsers', JSON.stringify(users));
-        
-        alert('✅ Hostel unassigned successfully');
         loadAllUsers();
         return;
     }
@@ -416,13 +423,12 @@ function assignHostelToAdmin(userId) {
     
     const selectedHostel = unassignedHostels[hostelIndex];
     
-    try {
-        securityManager.assignHostelToAdmin(userId, selectedHostel.id);
+    window.apiClient.assignHostelToAdmin(userId, selectedHostel.id).then(() => {
         alert(`✅ Successfully assigned ${selectedHostel.name} to ${user.firstName}`);
         loadAllUsers();
-    } catch (error) {
-        alert('❌ Error: ' + error.message);
-    }
+    }).catch(error => {
+        alert('❌ Error assigning hostel: ' + (error.message || 'Unknown error'));
+    });
 }
 
 function viewUserPermissions(userId) {
@@ -442,12 +448,18 @@ function viewUserPermissions(userId) {
     alert(`Permissions for ${user.firstName} ${user.lastName} (${user.role}):\n\n${permissionList}`);
 }
 
-function toggleUserStatus(userId, currentStatus) {
-    const users = securityManager.getUsers(currentUser);
-    const userIndex = users.findIndex(u => u.id === userId);
-    
-    if (userIndex === -1) {
-        alert('User not found');
+async function toggleUserStatus(userId, currentStatus) {
+    // Get the user from the currently displayed list
+    const userCard = document.querySelector(`.admin-card button[data-user-id="${userId}"]`).closest('.admin-card');
+    const user = {
+        id: userId,
+        firstName: userCard.querySelector('h3').textContent.split(' ')[0],
+        lastName: userCard.querySelector('h3').textContent.split(' ')[1],
+        role: userCard.querySelector('.admin-role').textContent.toLowerCase().replace(' ', '_')
+    };
+
+    if (!user) { // Should not happen if userCard was found
+        alert('User data not available.');
         return;
     }
     
@@ -465,19 +477,13 @@ function toggleUserStatus(userId, currentStatus) {
         return;
     }
     
-    users[userIndex].status = newStatus;
-    localStorage.setItem('secureUsers', JSON.stringify(users));
-    
-    securityManager.logSecurityEvent('user_status_changed', {
-        userId: userId,
-        oldStatus: currentStatus,
-        newStatus: newStatus,
-        changedBy: currentUser.id
+    window.apiClient.updateUserStatus(userId, newStatus).then(() => {
+        alert(`✅ User ${action}d successfully`);
+        loadAllUsers();
+        displayRoleStats();
+    }).catch(error => {
+        alert('❌ Error changing user status: ' + (error.message || 'Unknown error'));
     });
-    
-    alert(`✅ User ${action}d successfully`);
-    loadAllUsers();
-    displayRoleStats();
 }
 
 function createNewUser() {
@@ -550,7 +556,7 @@ function createNewUser() {
             return;
         }
         
-        try {
+        window.apiClient.register(userData).then(() => {
             const userData = {
                 firstName,
                 lastName,
@@ -563,16 +569,13 @@ function createNewUser() {
                 mustChangePassword: true
             };
             
-            const newUser = securityManager.createUser(userData);
-            
             alert(`✅ User created successfully!\n\nEmail: ${email}\nTemporary Password: ${password}\n\nUser must change password on first login.`);
             
             modal.remove();
             loadAllUsers();
             displayRoleStats();
-            
-        } catch (error) {
-            alert('❌ Error: ' + error.message);
+        }).catch(error => {
+            alert('❌ Error creating user: ' + (error.message || 'Unknown error'));
         }
     });
 }
@@ -584,7 +587,7 @@ function createHostelAdmin() {
 }
 
 function viewSecurityLogs() {
-    const logs = securityManager.getSecurityLogs();
+    const logs = []; // Will be fetched via API in a later step
     
     if (logs.length === 0) {
         alert('No security logs found.');
@@ -623,7 +626,7 @@ function viewSecurityLogs() {
     const clearBtn = document.querySelector('.modal-primary-btn');
     if (clearBtn) {
         clearBtn.addEventListener('click', function() {
-            if (confirm('Clear all security logs? This action cannot be undone.')) {
+            if (confirm('Clear all security logs? This action cannot be undone.')) { // Will be API call
                 securityManager.clearSecurityLogs();
                 alert('✅ Security logs cleared');
                 document.querySelector('.modal').remove();
@@ -649,7 +652,7 @@ function exportSystemData() {
         timestamp: new Date().toISOString(),
         exportedBy: currentUser.id,
         data: {
-            users: securityManager.getUsers(currentUser).map(user => {
+            users: [], // Will be fetched via API in a later step
                 const { password, ...safeUser } = user;
                 return safeUser;
             }),
@@ -668,7 +671,7 @@ function exportSystemData() {
     linkElement.setAttribute('download', exportFileName);
     linkElement.click();
     
-    securityManager.logSecurityEvent('system_data_exported', {
+    // securityManager.logSecurityEvent('system_data_exported', { // Will be API call
         exportedBy: currentUser.id
     });
 }
@@ -762,7 +765,7 @@ function setupLogout() {
         link.addEventListener('click', function(e) {
             e.preventDefault();
             if (confirm('Are you sure you want to logout?')) {
-                securityManager.logSecurityEvent('logout', { userId: currentUser.id });
+                // securityManager.logSecurityEvent('logout', { userId: currentUser.id }); // Will be API call
                 sessionStorage.clear();
                 window.location.href = 'index.html';
             }

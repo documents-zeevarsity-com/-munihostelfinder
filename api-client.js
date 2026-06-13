@@ -1,5 +1,7 @@
 (function(global) {
-  const API_BASE_URL = global.API_BASE_URL || '/api';
+  // Default to localhost:4000 for development if no base URL is provided
+  const defaultBase = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' ? 'http://localhost:4000/api' : '/api';
+  const API_BASE_URL = global.API_BASE_URL || defaultBase;
 
   async function request(path, options = {}) {
     const headers = Object.assign({ 'Content-Type': 'application/json' }, options.headers || {});
@@ -70,6 +72,18 @@
     },
     changePassword(payload) {
       return request('/auth/password', { method: 'PUT', body: JSON.stringify(payload) });
+    },
+    updateUserRole(userId, role) {
+      return request(`/users/${userId}/role`, { method: 'PUT', body: JSON.stringify({ role }) });
+    },
+    updateUserStatus(userId, status) {
+      return request(`/users/${userId}/status`, { method: 'PUT', body: JSON.stringify({ status }) });
+    },
+    assignHostelToAdmin(userId, hostelId) {
+      return request(`/users/${userId}/assign-hostel`, { method: 'PUT', body: JSON.stringify({ hostelId }) });
+    },
+    getSecurityLogs() {
+      return request('/security-logs'); // This endpoint will need to be created
     }
   };
 

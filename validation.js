@@ -48,6 +48,9 @@ const schemas = {
       newPassword: Joi.string().min(6).max(128).required(),
     }),
   },
+  user: {
+    updateStatus: Joi.object({ status: Joi.string().valid('active', 'pending', 'disabled').required() }),
+  },
   hostel: {
     create: Joi.object({
       name: Joi.string().trim().min(1).max(255).required(),

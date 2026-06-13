@@ -1094,18 +1094,25 @@ img { max-width: 100%; height: auto; display: block; }
     .search-box {
         flex-direction: column;
         border-radius: 10px;
+        padding: 12px; /* Consistent with frontend.css */
+        gap: 10px;    /* Consistent with frontend.css */
+        background: white; /* Ensure solid background */
+        width: 100%;
+        margin: 1.5rem auto;
     }
 
     .search-box input {
         width: 100%;
-        border-radius: 10px 10px 0 0;
-        padding: 1rem;
+        border-radius: 6px; /* Consistent with frontend.css */
+        padding: 0.85rem; /* Consistent with frontend.css */
+        text-align: left; /* Consistent with frontend.css */
+        border: 1px solid #e2e8f0; /* Consistent with frontend.css */
     }
 
     .search-box button {
         width: 100%;
-        border-radius: 0 0 10px 10px;
-        padding: 1rem;
+        border-radius: 8px; /* Consistent with frontend.css */
+        padding: 0.85rem; /* Consistent with frontend.css */
     }
 
     .hostels-grid {
